@@ -20,6 +20,22 @@ Each branch is a step you can check out and practise from. Feature branches all 
 | `feature/auth-token-refresh` | Auth interceptor, a synchronized refresh `Authenticator`, DataStore token store, MockWebServer tests |
 | `main` | Everything combined, plus favorites and search with pagination |
 
+**Company problems** (reported between May and Nov 2026, built from `01-minimal`). Sources and verification are in [docs/INTERVIEW_RESEARCH.md](docs/INTERVIEW_RESEARCH.md):
+
+| Branch | Problem |
+|---|---|
+| `adobe/search-suggestions-infinite-scroll` | Type-ahead suggestions (debounce, `flatMapLatest`, LRU cache) and infinite-scroll results |
+| `nykaa/product-listing-filters-cart` | Product list with filters and sort, a shared cart, and live stock that corrects the cart |
+| `reddit/comment-thread-filter` | Dog/cat comment-subtree filter with the score follow-up, in a threaded collapsible list |
+
+**Domain problems** (EdTech and ERP, built from `01-minimal`):
+
+| Branch | Problem |
+|---|---|
+| `edtech/timed-quiz` | Quiz timer that survives process death (deadline in `SavedStateHandle`), auto-submit, review |
+| `edtech/offline-course-downloads` | Lesson downloads with WorkManager: progress, cancel, retry/backoff, offline view |
+| `edtech/attendance-offline-sync` | Offline attendance with an outbox: idempotent sync, protection for in-flight edits, conflicts |
+
 ```bash
 git checkout 02-posts-list && git checkout -b my-attempt   # practise a feature yourself
 git diff 02-posts-list..feature/search-debounce            # then compare with the reference
