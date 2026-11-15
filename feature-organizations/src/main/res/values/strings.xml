@@ -1,0 +1,16 @@
+<resources>
+    <string name="orgs_title">Non-profits</string>
+    <string name="orgs_search_hint">Search organizations</string>
+    <string name="orgs_clear_search">Clear search</string>
+    <string name="orgs_result_count">%1$,d organizations</string>
+    <string name="orgs_no_results">No organizations match \"%1$s\"</string>
+    <string name="orgs_detail_title">Organization</string>
+    <string name="orgs_ein">EIN %1$s</string>
+    <string name="orgs_ntee">NTEE code %1$s</string>
+    <string name="orgs_filings">Financials (IRS filings)</string>
+    <string name="orgs_no_filings">No financial filings available</string>
+    <string name="orgs_col_year">Year</string>
+    <string name="orgs_col_revenue">Revenue</string>
+    <string name="orgs_col_expenses">Expenses</string>
+    <string name="orgs_col_assets">Assets</string>
+</resources>

@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "MachineCodingStarter"
 include(":app")
+include(":core")
+include(":feature-organizations")

@@ -1,0 +1,5 @@
+{"total_results": 27, "organizations": [
+ {"ein": 941340523, "strein": "94-1340523", "name": "Kaiser Foundation Health Plan Inc", "city": "Oakland", "state": "CA", "ntee_code": "E31", "score": 1.0},
+ {"ein": 911663695, "strein": "91-1663695", "name": "Gates Foundation Trust", "city": "Kirkland", "state": "WA", "ntee_code": "T20Z", "unexpected_new_field": true},
+ {"ein": 123456789, "name": "No Location Fund", "city": null, "state": "", "ntee_code": null}
+], "num_pages": 2, "cur_page": 0, "per_page": 25, "api_version": 2}

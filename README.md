@@ -1,45 +1,63 @@
-# Machine Coding Starter (Android): `01-minimal`
+# `docusign/organization-viewer`
 
-Core infrastructure with no features. Start a round here when the interviewer lets you set up your own architecture.
+**Company:** DocuSign · **Source:** DocuSign's own public repo [`docusign/Android-Candidate-Task`](https://github.com/docusign/Android-Candidate-Task) (published Aug 2020) · **Base branch:** `01-minimal`
 
-**Added on top of `00-empty`:**
-- `core/common`: `AppResult` (pure Kotlin, safe for the domain layer) and `@IoDispatcher`
-- `core/network`: `NetworkModule` (OkHttp with Timber logging, Retrofit, kotlinx.serialization `Json`) and `safeCall`
-- `core/mvi`: `MviViewModel` base (State + Intent + one-off Effects through a `Channel`)
-- `core/ui`: `UiText` (strings without a `Context`), `UiState`, `toUserMessage()`, loader, error and list-footer composables
-- `navigation/`: `NavHost` with type-safe `@Serializable` routes
-- Tests: `MainDispatcherRule` and `SafeCallTest`
+This is the strongest evidence in this repo of what DocuSign asks Android candidates to build, because it's **DocuSign's own published task**, not a candidate's account of it. It's from 2020, so the current task may differ. The API it names still works (checked Nov 2026).
 
-**Not here yet:** Room. `@Database` needs at least one entity, so `AppDatabase` arrives with the first feature in `02-posts-list`.
+## The task (DocuSign's requirements, quoted from their README)
+1. Users should be able to browse a list of Non-profit Organizations
+2. Unit and functional tests should be written where appropriate
+3. Code should be well architected and modular
+4. Check the API Spec for necessary endpoint information
+5. Feel free to use open source libraries as you see fit
 
-## Branches
+API: `https://projects.propublica.org/nonprofits/api/v2/search.json`
 
-Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
-
-| Branch | What it adds |
+## API quirks found against the live API (and handled)
+| Behaviour | Handling |
 |---|---|
-| `00-empty` | Compose + Hilt app, all dependencies, theme, Timber, ktlint/detekt, a blank screen. This is what many interviewers hand you. |
-| `01-minimal` | Core infrastructure with no features: Retrofit/OkHttp/Json, `safeCall`, `AppResult`, MVI base, `UiText`/`UiState`, error messages, shared composables, navigation shell |
-| `02-posts-list` | A basic feature: fetch posts, cache in Room (offline-first), loading/error/empty states, pull-to-refresh, MVI |
-| `feature/post-detail` | Detail screen (MVVM), type-safe navigation argument, network fallback for uncached posts |
-| `feature/pagination-manual` | Hand-written load-more with a reusable `Paginator`, scroll trigger, footer states |
-| `feature/search-debounce` | Server-side search: debounce, `distinctUntilChanged`, `flatMapLatest` cancellation, `SavedStateHandle` |
-| `feature/paging3` | Paging 3 with `RemoteMediator`, a Room `PagingSource` and remote keys |
-| `feature/auth-token-refresh` | Auth interceptor, a synchronized refresh `Authenticator`, DataStore token store, MockWebServer tests |
-| `main` | Everything combined, plus favorites and search with pagination |
+| `page` is **0-based**, 25 results per page, `num_pages` in the response | `Paginator` starts at page 0 for the first load, then 1..n |
+| A search with **no matches returns HTTP 404**, not an empty list | Mapped to an empty, finished page; the UI says "No organizations match …", not an error |
+| A page **past the end returns HTTP 400** "Pagination out of range" | Mapped to end of list |
+| Results are capped (`total_results` tops out at 10,000) | End of list = last page **or** an empty page |
+| Extra and unexpected fields, nulls, empty strings | `ignoreUnknownKeys`, nullable DTO fields, blank-safe location formatting |
+
+## "Modular": real Gradle modules
+```
+:app                     Thin shell: Application, MainActivity, theme, NavHost that only calls feature graphs
+:core                    Shared infra: AppResult, safeCall, MviViewModel, UiText/UiState, Paginator,
+                         common composables, OkHttp + Json + Retrofit.Builder (no base URL)
+:feature-organizations   data (Retrofit DTOs, repository) · domain (models, repository interface)
+                         · ui (MVI list, MVVM detail) · navigation (its own graph + routes) · di
+```
+- **Dependency direction:** features depend on `:core` only, never on each other, and `:app` depends on everything. A second feature would be a sibling module.
+- **Each feature owns its API:** it builds its own Retrofit from `:core`'s builder with its own base URL, so features don't share or know about each other's endpoints.
+- **Each feature owns its navigation:** `NavGraphBuilder.organizationsGraph()` lives in the feature, and `:app` doesn't know its screens or routes.
+- **`api` vs `implementation`:** `:core` exposes only the types that appear in its public signatures (Retrofit, Compose, ViewModel, coroutines) as `api`.
+- **Something the module split surfaced:** Kotlin can't smart-cast a property declared in another module (`PageStatus.loadMoreError` lives in `:core`), so the footer copies it into a local `val` first. Expect to be asked about this.
+
+## What's implemented
+- **List (MVI):** browsing and search share one pipeline: query (in `SavedStateHandle`) → debounce (instant when the field is cleared) → `distinctUntilChanged` → `flatMapLatest`, so a new query cancels the old request.
+  - **Infinite scroll:** a `snapshotFlow` scroll trigger plus the reusable `Paginator` (one request at a time, stops at the end, no automatic retry after an error).
+  - **States:** full-screen loading and error, empty, a thin progress bar while a new query loads over old results, a result count, footer states, and the query restored after process death.
+- **Detail (MVVM):** the EIN is read by property name from `SavedStateHandle`, and `UiState` drives loading, error with retry, and data. It shows the IRS filings table (revenue, expenses, assets by year) with compact formatting: `$6.5B`, an em dash when a value wasn't reported, and EIN as `94-1340523`.
+
+## Tests (32)
+| Layer | Tests | How it runs |
+|---|---|---|
+| Functional, data layer | 7: page parsing with unknown fields, the exact query parameters sent (trimmed `q`, 0-based `page`, `q` omitted when browsing), last page, **404 → empty**, **400 → end**, 5xx and malformed JSON → failure, detail parsing and sorting | **MockWebServer** + real Retrofit and kotlinx.serialization, JVM |
+| Unit, list ViewModel | 8: first page, paging to the end, debounced search restarting paging, empty result, error and retry, load-more error with explicit retry, navigation effect, process death | JVM, virtual time |
+| Unit, detail and formatting | 4 | JVM |
+| `:core` | 8: `Paginator` and `safeCall` | JVM |
+| **Functional UI** | 5 Compose tests on the stateless screen: rows and count, a tap sends the EIN, typing sends the query, empty-state text, footer retry | **Device or emulator**, passed on an API 36 emulator |
 
 ```bash
-git checkout 02-posts-list && git checkout -b my-attempt   # practise a feature yourself
-git diff 02-posts-list..feature/search-debounce            # then compare with the reference
+./gradlew testDebugUnitTest                                   # 27 JVM tests
+./gradlew :feature-organizations:connectedDebugAndroidTest    # 5 UI tests (emulator running)
 ```
 
-## Run
-
-Open in Android Studio (JDK 17), or:
-
-```bash
-./gradlew assembleDebug testDebugUnitTest
-./gradlew ktlintCheck detekt        # ktlintFormat auto-fixes style
-```
-
-The full write-up (architecture, MVVM vs MVI, pagination, search, SOLID, production basics) is in the README on `main`.
+## Follow-ups to prepare
+- **Offline-first:** cache the browse pages in Room with a remote-keys table (see `feature/paging3`), and show cached results when offline.
+- **Paging 3 instead of `Paginator`:** when you'd choose it, and why the hand-written version is easier to explain and test in an interview.
+- **Filters:** filter by state or NTEE category (the API supports `state[id]` and `ntee[id]`), with the filter state in `SavedStateHandle`.
+- **Scaling the modules:** split `:core` into `:core:network`, `:core:ui` and `:core:model`, use convention plugins for the repeated build config, and a `:feature-organizations:api` module if other features need to open the detail screen.

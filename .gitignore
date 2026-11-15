@@ -3,7 +3,6 @@
 .idea/
 .kotlin/
 /local.properties
-/build
-/app/build
+build/
 /captures
 .DS_Store

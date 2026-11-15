@@ -1,0 +1,6 @@
+{"organization": {"id": 1, "ein": 911663695, "name": "Gates Foundation Trust", "address": "2365 CARILLON PT", "city": "Kirkland", "state": "WA", "zipcode": "98033-7353", "ntee_code": "T20Z"},
+ "filings_with_data": [
+  {"tax_prd_yr": 2021, "totrevenue": 9580009055, "totfuncexpns": 6370047475, "totassetsend": 53927171316},
+  {"tax_prd_yr": 2023, "totrevenue": 6534759844, "totfuncexpns": 8285346420, "totassetsend": 75530745576},
+  {"tax_prd_yr": 2022, "totrevenue": null}
+ ]}

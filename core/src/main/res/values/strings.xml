@@ -1,0 +1,11 @@
+<resources>
+    <string name="action_retry">Retry</string>
+    <string name="action_back">Back</string>
+    <string name="list_end">You\'ve reached the end</string>
+    <string name="empty_generic">Nothing here yet</string>
+
+    <string name="error_no_internet">No internet connection</string>
+    <string name="error_timeout">Request timed out</string>
+    <string name="error_server">Server error (%1$d)</string>
+    <string name="error_generic">Something went wrong</string>
+</resources>

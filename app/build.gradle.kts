@@ -20,8 +20,6 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // Swap this for whatever API the interviewer gives you.
-        buildConfigField("String", "BASE_URL", "\"https://jsonplaceholder.typicode.com/\"")
     }
 
     buildTypes {
@@ -56,6 +54,9 @@ detekt {
 }
 
 dependencies {
+    implementation(project(":core"))
+    implementation(project(":feature-organizations"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
