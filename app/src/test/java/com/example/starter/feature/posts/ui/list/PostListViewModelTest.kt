@@ -55,6 +55,15 @@ class PostListViewModelTest {
     }
 
     @Test
+    fun `paging 3 button emits navigate effect`() = runTest(mainRule.dispatcher) {
+        val viewModel = vm(FakePostRepository(remote = posts))
+        viewModel.effects.test {
+            viewModel.onIntent(PostListIntent.OpenPaging3Sample)
+            assertThat(awaitItem()).isEqualTo(PostListEffect.NavigateToPaging3Sample)
+        }
+    }
+
+    @Test
     fun `retry after error loads posts`() = runTest(mainRule.dispatcher) {
         val repo = FakePostRepository(remote = posts, shouldFail = true)
         val viewModel = vm(repo)

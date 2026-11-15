@@ -30,6 +30,7 @@ class PostListViewModel @Inject constructor(observePosts: ObservePostsUseCase, p
         when (intent) {
             PostListIntent.Load, PostListIntent.Retry -> refresh(isPullToRefresh = false)
             PostListIntent.Refresh -> refresh(isPullToRefresh = true)
+            PostListIntent.OpenPaging3Sample -> sendEffect(PostListEffect.NavigateToPaging3Sample)
         }
     }
 

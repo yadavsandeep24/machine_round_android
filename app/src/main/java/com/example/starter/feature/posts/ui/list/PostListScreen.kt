@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -39,7 +40,7 @@ import com.example.starter.core.ui.ErrorView
 
 /** Stateful route: wires the ViewModel, collects one-off effects. */
 @Composable
-fun PostListRoute(viewModel: PostListViewModel = hiltViewModel()) {
+fun PostListRoute(onOpenPaging3: () -> Unit, viewModel: PostListViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -47,6 +48,7 @@ fun PostListRoute(viewModel: PostListViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
+                PostListEffect.NavigateToPaging3Sample -> onOpenPaging3()
                 is PostListEffect.ShowSnackbar -> snackbar.showSnackbar(effect.message.asString(context))
             }
         }
@@ -60,7 +62,16 @@ fun PostListRoute(viewModel: PostListViewModel = hiltViewModel()) {
 @Composable
 fun PostListScreen(state: PostListState, snackbar: SnackbarHostState, onIntent: (PostListIntent) -> Unit) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.posts_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.posts_title)) },
+                actions = {
+                    TextButton(onClick = { onIntent(PostListIntent.OpenPaging3Sample) }) {
+                        Text(stringResource(R.string.posts_open_paging3))
+                    }
+                }
+            )
+        },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         PullToRefreshBox(

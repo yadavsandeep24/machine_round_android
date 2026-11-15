@@ -18,8 +18,10 @@ sealed interface PostListIntent : UiIntent {
     data object Load : PostListIntent
     data object Refresh : PostListIntent
     data object Retry : PostListIntent
+    data object OpenPaging3Sample : PostListIntent
 }
 
 sealed interface PostListEffect : UiEffect {
+    data object NavigateToPaging3Sample : PostListEffect
     data class ShowSnackbar(val message: UiText) : PostListEffect
 }

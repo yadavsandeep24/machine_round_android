@@ -15,4 +15,6 @@
 
     <!-- Posts -->
     <string name="posts_title">Posts</string>
+    <string name="posts_open_paging3">Paging 3</string>
+    <string name="paged_posts_title">Posts (Paging 3)</string>
 </resources>

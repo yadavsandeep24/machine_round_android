@@ -1,17 +1,23 @@
-# Machine Coding Starter (Android): `02-posts-list`
+# Machine Coding Starter (Android): `feature/paging3`
 
-The base every feature branch starts from: one simple, complete feature with clean architecture and MVI.
+Starts from `02-posts-list` and adds a separate screen built with Paging 3 and `RemoteMediator`. Open it with the **Paging 3** button in the top bar.
 
-**Added on top of `01-minimal`:**
-- `core/model/Post`, `core/network/api` (`PostApi`, `PostDto`), `core/database` (`AppDatabase`, `DatabaseModule`)
-- `feature/posts`, in Clean Architecture layers:
-  - **data:** `PostEntity`, `PostDao` (atomic `replaceAll`), mappers, and an offline-first `PostRepositoryImpl` (the UI observes Room; the network writes into Room)
-  - **domain:** the `PostRepository` interface, `ObservePostsUseCase`, `RefreshPostsUseCase`
-  - **ui (MVI):** `PostListContract` (State / Intent / Effect), `PostListViewModel`, a stateful `PostListRoute` plus a stateless `PostListScreen` with a preview
-- **States:** full-screen loading, full-screen error with retry, empty, data, and pull-to-refresh. When offline with cached data, the cache stays on screen and a snackbar explains why.
-- **Tests:** `FakePostRepository` and 5 ViewModel tests
+**What this feature shows:**
+- **`PostRemoteMediator`** (network → Room):
+  - `REFRESH` loads page 1 and clears the table plus the remote key in one transaction.
+  - `APPEND` reads `nextPage` from the `remote_keys` table.
+  - `PREPEND` is a no-op.
+  - It catches `IOException`, `HttpException` and `SerializationException`, and returns them as `MediatorResult.Error`.
+- **Room `PagingSource`:** the DAO returns `PagingSource<Int, PagedPostEntity>`. Room invalidates it whenever the table changes, so the UI only ever reads the database.
+- **`Pager`** in `PagedPostRepositoryImpl` maps entities to the shared domain `Post`. The ViewModel is one line: `observePagedPosts().cachedIn(viewModelScope)`.
+- **UI:** `collectAsLazyPagingItems()`, `itemKey` and `itemContentType`. States come from `loadState.refresh` (full-screen loading/error/empty, plus a snackbar when a refresh fails over cached rows) and `loadState.append` (spinner, retry or end at the bottom of the list).
+- **Independent tables** (`paged_posts`, `remote_keys`), so the feature can be deleted without touching `feature/posts`. The two features share only `core/`.
+- **Trade-off:** `PagingData` appears in the domain interface. That's accepted because `paging-common` is pure Kotlin.
+- **No unit tests for the mediator:** testing it needs an in-memory Room database, which means an instrumented test. Compare with `feature/pagination-manual`, where everything is unit-tested.
 
-**Practise from here:** branch off and build a detail screen, pagination, search, Paging 3 or auth. Then compare with the matching `feature/*` branch.
+```bash
+git diff 02-posts-list..feature/paging3
+```
 
 ## Branches
 
