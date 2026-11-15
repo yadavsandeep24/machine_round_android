@@ -1,45 +1,33 @@
-# Machine Coding Starter (Android): `01-minimal`
+# `edtech/timed-quiz`
 
-Core infrastructure with no features. Start a round here when the interviewer lets you set up your own architecture.
+**Domain problem** (not from a company report), designed around EdTech apps like the ones in your StudioProjects (Quest, academy). **Base branch:** `01-minimal` · **Suggested time:** 90 minutes
 
-**Added on top of `00-empty`:**
-- `core/common`: `AppResult` (pure Kotlin, safe for the domain layer) and `@IoDispatcher`
-- `core/network`: `NetworkModule` (OkHttp with Timber logging, Retrofit, kotlinx.serialization `Json`) and `safeCall`
-- `core/mvi`: `MviViewModel` base (State + Intent + one-off Effects through a `Channel`)
-- `core/ui`: `UiText` (strings without a `Context`), `UiState`, `toUserMessage()`, loader, error and list-footer composables
-- `navigation/`: `NavHost` with type-safe `@Serializable` routes
-- Tests: `MainDispatcherRule` and `SafeCallTest`
+## Problem statement (as an interviewer would give it)
+> Build a timed quiz for a lesson.
+> - Load a quiz (title, duration, N single-choice questions) from the API.
+> - Show one question at a time with Previous/Next. A progress strip shows answered vs unanswered questions, and tapping it jumps to that question.
+> - Show a countdown in the toolbar that turns red in the last 10 seconds. At zero, auto-submit whatever is answered and tell the user.
+> - Manual submit asks for confirmation if any questions are unanswered.
+> - After submitting, show the score and a per-question review (your answer vs the correct one). Answers are locked from then on.
+> - **The attempt must survive rotation and process death:** the same answers, the same question, and the correct remaining time.
+> - Retake starts a fresh attempt.
 
-**Not here yet:** Room. `@Database` needs at least one entity, so `AppDatabase` arrives with the first feature in `02-posts-list`.
+## What's implemented
+- **Deadline, not counter:** the ViewModel stores `deadline = now + duration` in `SavedStateHandle` and computes the remaining time from an injected `Clock`. After process death the timer is exact, including the time the app was dead. A "seconds left" counter would reset or drift.
+- **No drift:** the timer sleeps until the displayed second actually changes (`(deadline - now) % 1000`), rather than repeating `delay(1000)`.
+- **Saved attempt:** answers (with `-1` meaning unanswered, since `SavedStateHandle` needs Bundle-friendly types), the current question index and the submitted flag are all saved.
+- **Pure grading:** `Quiz.grade(answers, timedOut)` lives in the domain layer and is unit-tested.
+- **One-off effect:** `TimeUp` is a `Channel` effect that shows a snackbar.
+- **Tests (10):** 6 ViewModel tests, 1 grading test and 3 `safeCall` tests.
+  - The ViewModel tests use virtual time as the wall clock, so they run instantly. They cover the countdown, auto-submit at zero, manual submit locking answers, **process death with exact remaining time**, retake, and error with retry.
 
-## Branches
-
-Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
-
-| Branch | What it adds |
-|---|---|
-| `00-empty` | Compose + Hilt app, all dependencies, theme, Timber, ktlint/detekt, a blank screen. This is what many interviewers hand you. |
-| `01-minimal` | Core infrastructure with no features: Retrofit/OkHttp/Json, `safeCall`, `AppResult`, MVI base, `UiText`/`UiState`, error messages, shared composables, navigation shell |
-| `02-posts-list` | A basic feature: fetch posts, cache in Room (offline-first), loading/error/empty states, pull-to-refresh, MVI |
-| `feature/post-detail` | Detail screen (MVVM), type-safe navigation argument, network fallback for uncached posts |
-| `feature/pagination-manual` | Hand-written load-more with a reusable `Paginator`, scroll trigger, footer states |
-| `feature/search-debounce` | Server-side search: debounce, `distinctUntilChanged`, `flatMapLatest` cancellation, `SavedStateHandle` |
-| `feature/paging3` | Paging 3 with `RemoteMediator`, a Room `PagingSource` and remote keys |
-| `feature/auth-token-refresh` | Auth interceptor, a synchronized refresh `Authenticator`, DataStore token store, MockWebServer tests |
-| `main` | Everything combined, plus favorites and search with pagination |
-
-```bash
-git checkout 02-posts-list && git checkout -b my-attempt   # practise a feature yourself
-git diff 02-posts-list..feature/search-debounce            # then compare with the reference
-```
-
-## Run
-
-Open in Android Studio (JDK 17), or:
+## Follow-ups to prepare
+- **Server-authoritative timing:** the server returns the deadline, so the client clock can't cheat. Handle clock skew.
+- **Offline attempts:** queue the submission (see `edtech/attendance-offline-sync`).
+- **Question types:** multi-select, ordering and free text, modelled as a sealed class with a `when` per type.
+- **Proctoring signals:** log app backgrounding during the attempt with a lifecycle observer.
+- **Accessibility:** announce the remaining time at intervals, not every second.
 
 ```bash
-./gradlew assembleDebug testDebugUnitTest
-./gradlew ktlintCheck detekt        # ktlintFormat auto-fixes style
+git diff 01-minimal..edtech/timed-quiz
 ```
-
-The full write-up (architecture, MVVM vs MVI, pagination, search, SOLID, production basics) is in the README on `main`.

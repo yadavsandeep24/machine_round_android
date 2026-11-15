@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Machine Coding Starter</string>
-    <string name="home_placeholder">Start building here</string>
 
     <!-- Common -->
     <string name="action_retry">Retry</string>
@@ -13,4 +12,20 @@
     <string name="error_timeout">Request timed out</string>
     <string name="error_server">Server error (%1$d)</string>
     <string name="error_generic">Something went wrong</string>
+
+    <!-- Quiz -->
+    <string name="quiz_title">Quiz</string>
+    <string name="quiz_question_of">Question %1$d of %2$d</string>
+    <string name="quiz_previous">Previous</string>
+    <string name="quiz_next">Next</string>
+    <string name="quiz_submit">Submit</string>
+    <string name="quiz_keep_going">Keep going</string>
+    <string name="quiz_confirm_title">Submit now?</string>
+    <string name="quiz_confirm_body">You have %1$d unanswered question(s).</string>
+    <string name="quiz_time_up">Time\'s up! Your answers were submitted.</string>
+    <string name="quiz_score">Score: %1$d / %2$d</string>
+    <string name="quiz_retake">Retake quiz</string>
+    <string name="quiz_skipped">Skipped</string>
+    <string name="quiz_your_answer">Your answer: %1$s</string>
+    <string name="quiz_correct_answer">Correct answer: %1$s</string>
 </resources>
