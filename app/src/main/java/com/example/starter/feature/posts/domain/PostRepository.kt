@@ -11,4 +11,7 @@ interface PostRepository {
 
     /** Fetch from network and replace the cache. */
     suspend fun refresh(): AppResult<Unit>
+
+    /** Server-side search. Results are not cached: they are only valid for that query. */
+    suspend fun searchPosts(query: String): AppResult<List<Post>>
 }

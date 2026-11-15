@@ -15,4 +15,7 @@
 
     <!-- Posts -->
     <string name="posts_title">Posts</string>
+    <string name="posts_search_hint">Search posts</string>
+    <string name="posts_search_clear">Clear search</string>
+    <string name="posts_search_no_results">No results for \"%1$s\"</string>
 </resources>

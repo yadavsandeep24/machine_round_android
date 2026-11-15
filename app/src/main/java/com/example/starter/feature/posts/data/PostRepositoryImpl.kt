@@ -25,4 +25,8 @@ class PostRepositoryImpl @Inject constructor(
     override suspend fun refresh(): AppResult<Unit> = withContext(io) {
         safeCall { dao.replaceAll(api.getPosts().map { it.toEntity() }) }
     }
+
+    override suspend fun searchPosts(query: String): AppResult<List<Post>> = withContext(io) {
+        safeCall { api.searchPosts(query).map { it.toDomain() } }
+    }
 }

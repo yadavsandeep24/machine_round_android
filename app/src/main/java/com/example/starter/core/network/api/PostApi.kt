@@ -10,4 +10,8 @@ interface PostApi {
      */
     @GET("posts")
     suspend fun getPosts(@Query("_page") page: Int? = null, @Query("_limit") limit: Int? = null): List<PostDto>
+
+    /** Server-side full-text search. */
+    @GET("posts")
+    suspend fun searchPosts(@Query("q") query: String): List<PostDto>
 }

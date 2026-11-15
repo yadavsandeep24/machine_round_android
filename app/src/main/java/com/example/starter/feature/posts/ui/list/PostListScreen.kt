@@ -9,10 +9,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -63,25 +71,82 @@ fun PostListScreen(state: PostListState, snackbar: SnackbarHostState, onIntent: 
         topBar = { TopAppBar(title = { Text(stringResource(R.string.posts_title)) }) },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = state.isRefreshing,
-            onRefresh = { onIntent(PostListIntent.Refresh) },
-            modifier = Modifier.padding(padding).fillMaxSize()
-        ) {
-            when {
-                state.isLoading && state.posts.isEmpty() -> CenteredLoader()
-                state.error != null && state.posts.isEmpty() ->
-                    ErrorView(state.error.asString()) { onIntent(PostListIntent.Retry) }
-                state.posts.isEmpty() -> CenteredText(stringResource(R.string.empty_generic))
-                else -> PostList(state.posts)
+        // Separate scroll positions: clearing the search returns you to where you were browsing.
+        val browseListState = rememberLazyListState()
+        val searchListState = rememberLazyListState()
+        LaunchedEffect(state.searchedQuery) { searchListState.scrollToItem(0) } // new query -> top
+
+        Column(Modifier.padding(padding).fillMaxSize()) {
+            SearchField(query = state.query, onQueryChange = { onIntent(PostListIntent.QueryChanged(it)) })
+            if (state.isSearchActive) {
+                SearchContent(state, searchListState, onIntent)
+            } else {
+                BrowseContent(state, browseListState, onIntent)
             }
         }
     }
 }
 
 @Composable
-private fun PostList(posts: List<Post>) {
+private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.posts_search_clear))
+                }
+            }
+        },
+        placeholder = { Text(stringResource(R.string.posts_search_hint)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BrowseContent(state: PostListState, listState: LazyListState, onIntent: (PostListIntent) -> Unit) {
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = { onIntent(PostListIntent.Refresh) },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        when {
+            state.isLoading && state.posts.isEmpty() -> CenteredLoader()
+            state.error != null && state.posts.isEmpty() ->
+                ErrorView(state.error.asString()) { onIntent(PostListIntent.Retry) }
+            state.posts.isEmpty() -> CenteredText(stringResource(R.string.empty_generic))
+            else -> PostList(state.posts, listState)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchContent(state: PostListState, listState: LazyListState, onIntent: (PostListIntent) -> Unit) {
+    val results = state.visiblePosts
+    PullToRefreshBox(
+        // While a new query loads we keep the old results visible and show the indicator on top.
+        isRefreshing = state.isSearchPending && results.isNotEmpty(),
+        onRefresh = { onIntent(PostListIntent.Refresh) },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        when {
+            state.isSearchPending && results.isEmpty() -> CenteredLoader()
+            state.searchError != null -> ErrorView(state.searchError.asString()) { onIntent(PostListIntent.Retry) }
+            results.isEmpty() -> CenteredText(stringResource(R.string.posts_search_no_results, state.searchedQuery.orEmpty()))
+            else -> PostList(results, listState)
+        }
+    }
+}
+
+@Composable
+private fun PostList(posts: List<Post>, listState: LazyListState) {
     LazyColumn(
+        state = listState,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()

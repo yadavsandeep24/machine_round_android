@@ -1,17 +1,26 @@
-# Machine Coding Starter (Android): `02-posts-list`
+# Machine Coding Starter (Android): `feature/search-debounce`
 
-The base every feature branch starts from: one simple, complete feature with clean architecture and MVI.
+Starts from `02-posts-list` and adds debounced server-side search.
 
-**Added on top of `01-minimal`:**
-- `core/model/Post`, `core/network/api` (`PostApi`, `PostDto`), `core/database` (`AppDatabase`, `DatabaseModule`)
-- `feature/posts`, in Clean Architecture layers:
-  - **data:** `PostEntity`, `PostDao` (atomic `replaceAll`), mappers, and an offline-first `PostRepositoryImpl` (the UI observes Room; the network writes into Room)
-  - **domain:** the `PostRepository` interface, `ObservePostsUseCase`, `RefreshPostsUseCase`
-  - **ui (MVI):** `PostListContract` (State / Intent / Effect), `PostListViewModel`, a stateful `PostListRoute` plus a stateless `PostListScreen` with a preview
-- **States:** full-screen loading, full-screen error with retry, empty, data, and pull-to-refresh. When offline with cached data, the cache stays on screen and a snackbar explains why.
-- **Tests:** `FakePostRepository` and 5 ViewModel tests
+**What this feature shows:**
+```
+keystroke -> state.query (instant, so the text field never lags)
+          -> SavedStateHandle["query"]                 // survives process death
+               .debounce { if (blank) 0 else 300ms }   // clearing is instant
+               .map { trim }
+               .distinctUntilChanged()                 // kotlin -> kotli -> kotlin sends no new request
+          combine(searchRetry)                         // Retry / pull-to-refresh re-runs the same query
+          .flatMapLatest { query -> search(query) }    // a new query CANCELS the old request
+```
+- **Why `flatMapLatest`:** without it, a slow response for "ko" can arrive after the response for "kotlin" and overwrite it. That's a race condition interviewers like to ask about.
+- **`searchedQuery` vs `query`:** the results belong to `searchedQuery`. The gap between the two is the "pending" state, during which old results stay visible with a refresh indicator.
+- **UI:** a clear button, separate scroll positions for browse and search, and a new query scrolls to the top.
+- **Not cached:** search results go straight to the network, and browsing still reads Room.
+- **Tests (6):** debounce, cancelling a stale request, a retyped query not searching again, clearing being instant, error and retry, and process death. They use `runCurrent` and `advanceTimeBy` on virtual time.
 
-**Practise from here:** branch off and build a detail screen, pagination, search, Paging 3 or auth. Then compare with the matching `feature/*` branch.
+```bash
+git diff 02-posts-list..feature/search-debounce
+```
 
 ## Branches
 
