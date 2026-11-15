@@ -19,6 +19,29 @@ Starts from `02-posts-list` and adds a separate screen built with Paging 3 and `
 git diff 02-posts-list..feature/paging3
 ```
 
+## Follow-up: LLD (low-level design)
+- **The three pieces:** `PagingSource` (reads Room), `RemoteMediator` (fills Room from the network), `Pager` (wires them with `PagingConfig`). Draw how `LoadType.REFRESH`/`APPEND`/`PREPEND` flow between them.
+- **Remote keys:** why a separate `remote_keys` table instead of deriving the next page from row count (deletes and filtered rows break counting).
+- **Transactions:** refresh clears data and keys and inserts page 1 in one `withTransaction`, so the UI never sees an empty list between steps.
+- **Errors:** the mediator catches specific exceptions (`IOException`, `HttpException`, `SerializationException`) and returns `MediatorResult.Error`; the UI reads `loadState.refresh`/`append` to show full-screen or footer errors.
+- **Domain purity:** `PagingData` leaks into the domain interface. Defend it (paging-common is pure Kotlin) or show the alternative (the hand-written `Paginator`).
+
+## Follow-up: HLD (high-level design)
+- **When Paging 3 fits:** large, mostly read-only lists that must work offline. When it doesn't: small lists, heavy client-side filtering, or interviews where hand-written logic is expected.
+- **Server contract:** cursor-based pages with `nextCursor`, stable sort order, and ids that never repeat across pages.
+- **Cache invalidation:** `InitializeAction.SKIP_INITIAL_REFRESH` with a timestamp check, so reopening the screen within N minutes doesn't refetch.
+- **Storage limits:** cap the cached rows and evict old pages; the user can always refetch.
+- **Consistency:** items edited server-side while cached; refresh on pull, or push "list changed" events that trigger a refresh.
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design an offline-first, paginated inbox (email, messages or notifications) that works on a plane." About 45 minutes.
+1. **Requirements:** browse thousands of items offline, new items arrive while open, mark read, delete. Non-functional: instant open from cache, sync within seconds when online.
+2. **Client architecture:** Room `PagingSource` + `RemoteMediator` + remote keys; WorkManager for background sync; an outbox for local actions (read, delete) made offline.
+3. **API and data model:** cursor pages for history; a delta endpoint `GET /changes?since=<token>` for updates; items keyed by id with version numbers.
+4. **Data flow:** the UI reads only Room; the mediator fills older pages; delta sync applies inserts, updates and deletes; local actions sync from the outbox.
+5. **Scale and performance:** cap local history (e.g. last 90 days), index by date, push notifications trigger a delta sync.
+6. **Trade-offs to state:** full re-sync vs delta tokens, conflict rules for actions on items changed elsewhere, storage limits.
+
 ## Branches
 
 Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
