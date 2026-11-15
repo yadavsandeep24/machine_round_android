@@ -1,45 +1,37 @@
-# Machine Coding Starter (Android): `01-minimal`
+# `adobe/search-suggestions-infinite-scroll`
 
-Core infrastructure with no features. Start a round here when the interviewer lets you set up your own architecture.
+**Company:** Adobe · **Role reported:** MTS-2 (Android) · **Reported:** August 2026 · **Base branch:** `01-minimal`
 
-**Added on top of `00-empty`:**
-- `core/common`: `AppResult` (pure Kotlin, safe for the domain layer) and `@IoDispatcher`
-- `core/network`: `NetworkModule` (OkHttp with Timber logging, Retrofit, kotlinx.serialization `Json`) and `safeCall`
-- `core/mvi`: `MviViewModel` base (State + Intent + one-off Effects through a `Channel`)
-- `core/ui`: `UiText` (strings without a `Context`), `UiState`, `toUserMessage()`, loader, error and list-footer composables
-- `navigation/`: `NavHost` with type-safe `@Serializable` routes
-- Tests: `MainDispatcherRule` and `SafeCallTest`
+## The problem (paraphrased from the report)
+In the low-level design round, the candidate was asked to design two things: a **search bar that shows suggestions while you type**, and an **infinite-scroll results list**. Earlier rounds covered thread-safe singletons, `AndroidViewModel` vs `ViewModel`, when a `Deferred` starts running, and Dagger/Hilt.
 
-**Not here yet:** Room. `@Database` needs at least one entity, so `AppDatabase` arrives with the first feature in `02-posts-list`.
+This branch turns that design prompt into a working app, so you can practise building it in about 90 minutes and then defend the design.
 
-## Branches
+## Sources and verification
+| Claim | Source | Status |
+|---|---|---|
+| Round 3 covered LLD for a search bar with suggestions and an infinite-scroll list (MTS-2 Android, Aug 2026) | Aggregated candidate report on FastPrep, "Adobe Experienced-Hire First Technical Round" (Nov 2024 – Nov 2026 collection) | Second-hand: an aggregator page, not the original post |
+| Adobe hires native Android engineers (Kotlin), e.g. SDE 3 Android in Noida | Adobe job listings (Anita B. jobs board, accel.com Frame.io posting) | Consistent with official listings |
+| Adobe publishes its machine coding questions | Not found. No official Adobe page describes this round. | Not verifiable |
 
-Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
+Treat the problem as **reported, not confirmed by Adobe**.
 
-| Branch | What it adds |
-|---|---|
-| `00-empty` | Compose + Hilt app, all dependencies, theme, Timber, ktlint/detekt, a blank screen. This is what many interviewers hand you. |
-| `01-minimal` | Core infrastructure with no features: Retrofit/OkHttp/Json, `safeCall`, `AppResult`, MVI base, `UiText`/`UiState`, error messages, shared composables, navigation shell |
-| `02-posts-list` | A basic feature: fetch posts, cache in Room (offline-first), loading/error/empty states, pull-to-refresh, MVI |
-| `feature/post-detail` | Detail screen (MVVM), type-safe navigation argument, network fallback for uncached posts |
-| `feature/pagination-manual` | Hand-written load-more with a reusable `Paginator`, scroll trigger, footer states |
-| `feature/search-debounce` | Server-side search: debounce, `distinctUntilChanged`, `flatMapLatest` cancellation, `SavedStateHandle` |
-| `feature/paging3` | Paging 3 with `RemoteMediator`, a Room `PagingSource` and remote keys |
-| `feature/auth-token-refresh` | Auth interceptor, a synchronized refresh `Authenticator`, DataStore token store, MockWebServer tests |
-| `main` | Everything combined, plus favorites and search with pagination |
+## What's implemented
+- **Suggestions pipeline:** keystrokes → `debounce(200ms)` → trim → `distinctUntilChanged` → `flatMapLatest`, so stale requests are cancelled. Suggestions need at least 2 characters and are best-effort: on failure, none are shown.
+- **Suggestion cache:** a hand-written `LruCache` (`LinkedHashMap` in access order). Retyping a prefix costs no network call, and failures are never cached.
+- **Recent searches:** shown when the field is empty. Newest first, de-duplicated ignoring case, capped at 5.
+- **Submit:** happens from the keyboard's search action or by tapping a suggestion. It hides the keyboard through a one-off effect, cancels any stale page load, and loads page 1.
+- **Infinite scroll:** uses the reusable `Paginator` (one request at a time, stops at the end, no automatic retry after an error) with a `snapshotFlow` trigger and footer states.
+- **Backend:** `FakeAssetServer` is an in-app stand-in with deterministic data, latency and failure injection. Replace it with a Retrofit API without touching the ViewModel.
+- **Tests (19):** 6 ViewModel tests (debounce, cancellation, submit, infinite scroll, stale load-more, error and retry), 4 repository tests, 1 LRU test, 5 `Paginator` tests and 3 `safeCall` tests.
 
-```bash
-git checkout 02-posts-list && git checkout -b my-attempt   # practise a feature yourself
-git diff 02-posts-list..feature/search-debounce            # then compare with the reference
-```
-
-## Run
-
-Open in Android Studio (JDK 17), or:
+## Talking points for the follow-up discussion
+- **Debounce vs throttle:** why debounce fits type-ahead.
+- **Cache key normalisation** (trim + lowercase), cache size, and eviction policy.
+- **Why suggestions and results are separate pipelines.**
+- **Where pagination state lives:** `Paginator`, not the UI.
+- **Production:** server-side ranking, request coalescing, and offline recent searches persisted with DataStore.
 
 ```bash
-./gradlew assembleDebug testDebugUnitTest
-./gradlew ktlintCheck detekt        # ktlintFormat auto-fixes style
+git diff 01-minimal..adobe/search-suggestions-infinite-scroll
 ```
-
-The full write-up (architecture, MVVM vs MVI, pagination, search, SOLID, production basics) is in the README on `main`.

@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Machine Coding Starter</string>
-    <string name="home_placeholder">Start building here</string>
 
     <!-- Common -->
     <string name="action_retry">Retry</string>
@@ -13,4 +12,11 @@
     <string name="error_timeout">Request timed out</string>
     <string name="error_server">Server error (%1$d)</string>
     <string name="error_generic">Something went wrong</string>
+
+    <!-- Search -->
+    <string name="search_title">Asset search</string>
+    <string name="search_hint">Search assets, e.g. \"mountain\"</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_start">Type to see suggestions, then search</string>
+    <string name="search_no_results">No results for \"%1$s\"</string>
 </resources>
