@@ -38,3 +38,26 @@ The exact screens are **my interpretation** of the reported design topics. They 
 ```bash
 git diff 01-minimal..nykaa/product-listing-filters-cart
 ```
+
+## Follow-up: LLD (low-level design)
+- **Classes:** `ProductListViewModel` (MVI, combines four flows), `CatalogRepository`, `CartRepository` (singleton `StateFlow<Cart>`), `ProductFilter` + `applyFilter()` (pure), `CartViewModel` (MVVM). Draw who owns which state.
+- **Filters as data, not code:** `ProductFilter(brands, maxPrice, sort)` is an immutable value; sorting is a `when` over `SortOption`. To add a filter type, add a field and one predicate. Discuss when to move to a list of `FilterRule` objects (Specification pattern).
+- **Cart invariants in one place:** `add()` never exceeds stock; `reconcile()` clamps quantities when stock drops. The rules live in the repository, not the UI, so every screen gets them.
+- **Money:** `Int` rupees in the exercise; in production use minor units (paise) or `BigDecimal`, and never floating point.
+- **Observer vs event:** stock is a stream (`Flow`), the cart is state (`StateFlow`), "can't add more" is a one-off effect (`Channel`).
+
+## Follow-up: HLD (high-level design)
+- **Services:** catalogue and search (faceted filters with counts), inventory (stock per SKU and warehouse), cart (server-side, per user), pricing and offers. The app talks to a backend-for-frontend that aggregates them.
+- **Live stock:** inventory publishes changes to a stream (Kafka); a WebSocket/SSE gateway fans out only the SKUs a client is viewing. The client conflates updates and reconnects with backoff.
+- **Cart consistency:** the server cart is the source of truth after login; the guest cart merges in on login. Stock is reserved at checkout, not at "add to cart", to avoid locking inventory.
+- **Sale-day spikes:** CDN for catalogue reads, pre-warmed caches, request collapsing, a queue in front of checkout, and graceful degradation (hide live stock before failing checkout).
+- **Filters at scale:** facets computed by the search engine, not the app; the app sends filter state and renders server-provided facet counts.
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design the Nykaa shopping app for a flash sale: catalogue, filters, cart and checkout with live stock." About 45 minutes. This matches round 3 of the reported interview.
+1. **Requirements:** browse and filter products, add to cart, live stock and price, checkout. Non-functional: survive 10x traffic at sale start, never oversell, cart consistent across devices.
+2. **Client architecture:** catalogue, cart and checkout feature modules; MVI screens; cart as a shared `StateFlow` backed by Room and synced with the server cart; a WebSocket client for live updates of the SKUs on screen.
+3. **API and data model:** BFF endpoints: `GET /plp?filters=&cursor=` (products + facet counts), `GET/PUT /cart`, `POST /checkout` (idempotency key); stock and price events per SKU.
+4. **Data flow:** filters change → server query with facets; add to cart → optimistic local update → server confirms or corrects; stock event → UI label + cart reconcile; checkout reserves stock server-side.
+5. **Scale and performance:** CDN for listing pages and images, pre-warmed caches before the sale, a queue (virtual waiting room) in front of checkout, graceful degradation of live stock.
+6. **Trade-offs to state:** optimistic vs pessimistic cart updates, reserve stock at add-to-cart vs checkout, WebSocket vs polling, consistency vs availability during the spike.
