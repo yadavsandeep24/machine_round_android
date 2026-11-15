@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Machine Coding Starter</string>
-    <string name="home_placeholder">Start building here</string>
 
     <!-- Common -->
     <string name="action_retry">Retry</string>
@@ -13,4 +12,17 @@
     <string name="error_timeout">Request timed out</string>
     <string name="error_server">Server error (%1$d)</string>
     <string name="error_generic">Something went wrong</string>
+
+    <!-- Course -->
+    <string name="course_title">Course</string>
+    <string name="course_downloaded_only">Downloaded only</string>
+    <string name="course_storage">%1$d lessons · %2$d MB</string>
+    <string name="course_nothing_downloaded">No downloaded lessons yet</string>
+    <string name="course_offline">You\'re offline: showing downloaded lessons</string>
+    <string name="course_lesson_meta">%1$d min · %2$d MB</string>
+    <string name="course_download">Download</string>
+    <string name="course_cancel">Cancel download</string>
+    <string name="course_delete">Delete download</string>
+    <string name="course_retry_download">Retry download (%1$s)</string>
+    <string name="course_queued">Queued: waiting for network or retry</string>
 </resources>

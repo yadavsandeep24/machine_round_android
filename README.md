@@ -1,45 +1,41 @@
-# Machine Coding Starter (Android): `01-minimal`
+# `edtech/offline-course-downloads`
 
-Core infrastructure with no features. Start a round here when the interviewer lets you set up your own architecture.
+**Domain problem** (not from a company report), designed around your Quest app (ExoPlayer, offline video). **Base branch:** `01-minimal` · **Suggested time:** 2 hours (senior)
 
-**Added on top of `00-empty`:**
-- `core/common`: `AppResult` (pure Kotlin, safe for the domain layer) and `@IoDispatcher`
-- `core/network`: `NetworkModule` (OkHttp with Timber logging, Retrofit, kotlinx.serialization `Json`) and `safeCall`
-- `core/mvi`: `MviViewModel` base (State + Intent + one-off Effects through a `Channel`)
-- `core/ui`: `UiText` (strings without a `Context`), `UiState`, `toUserMessage()`, loader, error and list-footer composables
-- `navigation/`: `NavHost` with type-safe `@Serializable` routes
-- Tests: `MainDispatcherRule` and `SafeCallTest`
+## Problem statement (as an interviewer would give it)
+> A course has N video lessons. Learners must be able to study on a train with no network.
+> - Show the course outline. It must be available offline after the first load.
+> - **Download** any lesson. Show Queued and Downloading (with progress) states, then Downloaded. Allow **cancel** and **delete**.
+> - Downloads must continue if the user leaves the screen or the app is killed, wait for network, and **retry** transient failures with backoff. After 3 failures, show the error with a retry action.
+> - Tapping Download twice must not start two downloads, and a cancelled or failed download must not leave a half-written file.
+> - Add a "Downloaded only" filter, show storage used, and when the device goes offline, automatically show only downloaded lessons with an offline banner.
 
-**Not here yet:** Room. `@Database` needs at least one entity, so `AppDatabase` arrives with the first feature in `02-posts-list`.
+## What's implemented
+- **Architecture:** the ViewModel only observes Room (course outline plus download state) and the network. WorkManager, files and transfers sit behind interfaces:
+  - `DownloadStore`: a Room table
+  - `DownloadScheduler`: WorkManager
+  - `LessonFileStore`: `filesDir`
+  - `LessonDownloader`: the transfer itself
+- **WorkManager:**
+  - Each lesson gets one unique work item, enqueued with `KEEP` (double taps are idempotent).
+  - Constraints: `NetworkType.CONNECTED` and storage not low. Retries use `BackoffPolicy.EXPONENTIAL`.
+  - The worker is a `@HiltWorker`. `StarterApp` supplies `HiltWorkerFactory`, and the manifest removes the default initializer.
+- **`LessonDownloadProcessor`:** the worker's logic as a plain class, so it can be unit-tested without WorkManager.
+  - Progress is throttled to one DB write per percent.
+  - The partial file is deleted on cancel or error.
+  - Before the last attempt it returns `RETRY` and goes back to Queued. On the final failure it returns `FAILED` with the reason.
+- **Fake transfer:** `FakeLessonDownloader` writes real files chunk by chunk and checks for cancellation between chunks with `ensureActive()`. Lesson 5 fails its first attempt so you can watch retry with backoff happen. Swap it for an OkHttp streaming implementation.
+- **`NetworkMonitor`:** wraps the `ConnectivityManager` callback in `callbackFlow`, with `awaitClose` to unregister, plus `conflate` and `distinctUntilChanged`.
+- **Offline-first outline:** `CourseRepositoryImpl` caches the course in Room. A refresh failure with a cached outline shows a snackbar, and with no cache it shows a full-screen error.
+- **Tests (14):** 3 processor tests (on real temp files), 3 repository tests, 5 ViewModel tests and 3 `safeCall` tests.
 
-## Branches
-
-Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
-
-| Branch | What it adds |
-|---|---|
-| `00-empty` | Compose + Hilt app, all dependencies, theme, Timber, ktlint/detekt, a blank screen. This is what many interviewers hand you. |
-| `01-minimal` | Core infrastructure with no features: Retrofit/OkHttp/Json, `safeCall`, `AppResult`, MVI base, `UiText`/`UiState`, error messages, shared composables, navigation shell |
-| `02-posts-list` | A basic feature: fetch posts, cache in Room (offline-first), loading/error/empty states, pull-to-refresh, MVI |
-| `feature/post-detail` | Detail screen (MVVM), type-safe navigation argument, network fallback for uncached posts |
-| `feature/pagination-manual` | Hand-written load-more with a reusable `Paginator`, scroll trigger, footer states |
-| `feature/search-debounce` | Server-side search: debounce, `distinctUntilChanged`, `flatMapLatest` cancellation, `SavedStateHandle` |
-| `feature/paging3` | Paging 3 with `RemoteMediator`, a Room `PagingSource` and remote keys |
-| `feature/auth-token-refresh` | Auth interceptor, a synchronized refresh `Authenticator`, DataStore token store, MockWebServer tests |
-| `main` | Everything combined, plus favorites and search with pagination |
+## Follow-ups to prepare
+- **Long downloads:** `setForeground()` with a notification (Android 14 needs the `dataSync` foreground service type), plus pause and resume.
+- **Resuming partial files:** HTTP `Range` requests.
+- **Storage quota:** checking it and evicting lessons on an LRU basis.
+- **DRM / encryption:** ExoPlayer `DownloadService` with Widevine, and encrypted files.
+- **Playback:** a `CacheDataSource` keyed by lesson id, and reporting progress back to the server when online again.
 
 ```bash
-git checkout 02-posts-list && git checkout -b my-attempt   # practise a feature yourself
-git diff 02-posts-list..feature/search-debounce            # then compare with the reference
+git diff 01-minimal..edtech/offline-course-downloads
 ```
-
-## Run
-
-Open in Android Studio (JDK 17), or:
-
-```bash
-./gradlew assembleDebug testDebugUnitTest
-./gradlew ktlintCheck detekt        # ktlintFormat auto-fixes style
-```
-
-The full write-up (architecture, MVVM vs MVI, pagination, search, SOLID, production basics) is in the README on `main`.
