@@ -9,8 +9,10 @@ import com.example.starter.feature.posts.data.local.PostDao
 import com.example.starter.feature.posts.domain.PostRepository
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.withContext
 
 /** Offline-first: the UI observes Room; the network only writes into Room. */
@@ -21,6 +23,16 @@ class PostRepositoryImpl @Inject constructor(
 ) : PostRepository {
 
     override fun observePosts(): Flow<List<Post>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observePost(id: Int): Flow<Post?> = dao.observeById(id).transformLatest { entity ->
+        if (entity != null) {
+            emit(entity.toDomain())
+        } else {
+            val remote = withContext(io) { safeCall { api.getPost(id) } }
+            emit((remote as? AppResult.Success)?.data?.toDomain())
+        }
+    }
 
     override suspend fun refresh(): AppResult<Unit> = withContext(io) {
         safeCall { dao.replaceAll(api.getPosts().map { it.toEntity() }) }

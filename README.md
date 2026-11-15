@@ -1,17 +1,17 @@
-# Machine Coding Starter (Android): `02-posts-list`
+# Machine Coding Starter (Android): `feature/post-detail`
 
-The base every feature branch starts from: one simple, complete feature with clean architecture and MVI.
+Starts from `02-posts-list` and adds a detail screen.
 
-**Added on top of `01-minimal`:**
-- `core/model/Post`, `core/network/api` (`PostApi`, `PostDto`), `core/database` (`AppDatabase`, `DatabaseModule`)
-- `feature/posts`, in Clean Architecture layers:
-  - **data:** `PostEntity`, `PostDao` (atomic `replaceAll`), mappers, and an offline-first `PostRepositoryImpl` (the UI observes Room; the network writes into Room)
-  - **domain:** the `PostRepository` interface, `ObservePostsUseCase`, `RefreshPostsUseCase`
-  - **ui (MVI):** `PostListContract` (State / Intent / Effect), `PostListViewModel`, a stateful `PostListRoute` plus a stateless `PostListScreen` with a preview
-- **States:** full-screen loading, full-screen error with retry, empty, data, and pull-to-refresh. When offline with cached data, the cache stays on screen and a snackbar explains why.
-- **Tests:** `FakePostRepository` and 5 ViewModel tests
+**What this feature shows:**
+- **MVVM next to MVI:** `PostDetailViewModel` exposes a `StateFlow<UiState<Post>>` built with `stateIn(WhileSubscribed(5_000))`. Compare it with the list's MVI contract.
+- **Navigation as an effect:** the list sends `PostClicked`, the ViewModel emits a one-off `NavigateToDetail` effect, and the route calls the `NavController`. The ViewModel never sees navigation APIs.
+- **Type-safe argument:** `PostDetailDestination(val id: Int)` is read from `SavedStateHandle` by property name. That works in plain JVM tests, whereas `toRoute()` needs Robolectric.
+- **Network fallback:** `observePost(id)` serves the Room row, or fetches `GET posts/{id}` with `transformLatest` when the post isn't cached (deep links, search results).
+- **Tests:** a click → effect test, and 3 detail tests (cached, uncached, missing)
 
-**Practise from here:** branch off and build a detail screen, pagination, search, Paging 3 or auth. Then compare with the matching `feature/*` branch.
+```bash
+git diff 02-posts-list..feature/post-detail
+```
 
 ## Branches
 

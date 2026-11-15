@@ -11,6 +11,9 @@ interface PostDao {
     @Query("SELECT * FROM posts ORDER BY id")
     fun observeAll(): Flow<List<PostEntity>>
 
+    @Query("SELECT * FROM posts WHERE id = :id")
+    fun observeById(id: Int): Flow<PostEntity?>
+
     @Upsert
     suspend fun upsertAll(posts: List<PostEntity>)
 

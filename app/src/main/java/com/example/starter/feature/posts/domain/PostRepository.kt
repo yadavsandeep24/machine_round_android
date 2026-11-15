@@ -9,6 +9,9 @@ interface PostRepository {
     /** Local DB is the source of truth; observe it. */
     fun observePosts(): Flow<List<Post>>
 
+    /** Cached post, or fetched from network if it isn't cached (e.g. opened from a deep link). */
+    fun observePost(id: Int): Flow<Post?>
+
     /** Fetch from network and replace the cache. */
     suspend fun refresh(): AppResult<Unit>
 }

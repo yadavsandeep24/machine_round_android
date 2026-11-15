@@ -1,5 +1,6 @@
 package com.example.starter.feature.posts.ui.list
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -39,7 +40,7 @@ import com.example.starter.core.ui.ErrorView
 
 /** Stateful route: wires the ViewModel, collects one-off effects. */
 @Composable
-fun PostListRoute(viewModel: PostListViewModel = hiltViewModel()) {
+fun PostListRoute(onOpenDetail: (Int) -> Unit, viewModel: PostListViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -47,6 +48,7 @@ fun PostListRoute(viewModel: PostListViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
+                is PostListEffect.NavigateToDetail -> onOpenDetail(effect.id)
                 is PostListEffect.ShowSnackbar -> snackbar.showSnackbar(effect.message.asString(context))
             }
         }
@@ -73,26 +75,26 @@ fun PostListScreen(state: PostListState, snackbar: SnackbarHostState, onIntent: 
                 state.error != null && state.posts.isEmpty() ->
                     ErrorView(state.error.asString()) { onIntent(PostListIntent.Retry) }
                 state.posts.isEmpty() -> CenteredText(stringResource(R.string.empty_generic))
-                else -> PostList(state.posts)
+                else -> PostList(state.posts, onClick = { onIntent(PostListIntent.PostClicked(it)) })
             }
         }
     }
 }
 
 @Composable
-private fun PostList(posts: List<Post>) {
+private fun PostList(posts: List<Post>, onClick: (Int) -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(posts, key = { it.id }) { post -> PostItem(post) }
+        items(posts, key = { it.id }) { post -> PostItem(post, onClick = { onClick(post.id) }) }
     }
 }
 
 @Composable
-private fun PostItem(post: Post) {
-    Card(Modifier.fillMaxWidth()) {
+private fun PostItem(post: Post, onClick: () -> Unit) {
+    Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(Modifier.padding(16.dp)) {
             Text(post.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(4.dp))

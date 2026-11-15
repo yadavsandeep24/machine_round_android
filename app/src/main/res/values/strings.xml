@@ -15,4 +15,6 @@
 
     <!-- Posts -->
     <string name="posts_title">Posts</string>
+    <string name="post_detail_title">Post</string>
+    <string name="post_detail_load_error">Couldn\'t load this post</string>
 </resources>

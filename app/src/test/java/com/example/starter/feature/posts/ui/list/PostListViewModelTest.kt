@@ -55,6 +55,15 @@ class PostListViewModelTest {
     }
 
     @Test
+    fun `click emits navigate effect`() = runTest(mainRule.dispatcher) {
+        val viewModel = vm(FakePostRepository(remote = posts))
+        viewModel.effects.test {
+            viewModel.onIntent(PostListIntent.PostClicked(7))
+            assertThat(awaitItem()).isEqualTo(PostListEffect.NavigateToDetail(7))
+        }
+    }
+
+    @Test
     fun `retry after error loads posts`() = runTest(mainRule.dispatcher) {
         val repo = FakePostRepository(remote = posts, shouldFail = true)
         val viewModel = vm(repo)

@@ -30,6 +30,7 @@ class PostListViewModel @Inject constructor(observePosts: ObservePostsUseCase, p
         when (intent) {
             PostListIntent.Load, PostListIntent.Retry -> refresh(isPullToRefresh = false)
             PostListIntent.Refresh -> refresh(isPullToRefresh = true)
+            is PostListIntent.PostClicked -> sendEffect(PostListEffect.NavigateToDetail(intent.id))
         }
     }
 

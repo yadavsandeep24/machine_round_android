@@ -6,6 +6,7 @@ import com.example.starter.feature.posts.domain.PostRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 /** Fakes > mocks for repositories: simpler, and they behave like the real thing. */
 class FakePostRepository(
@@ -18,6 +19,9 @@ class FakePostRepository(
     val db = MutableStateFlow<List<Post>>(emptyList())
 
     override fun observePosts(): Flow<List<Post>> = db
+
+    /** Same contract as the real repo: cached row first, otherwise "network" (remote). */
+    override fun observePost(id: Int): Flow<Post?> = db.map { list -> list.find { it.id == id } ?: remote.find { it.id == id } }
 
     override suspend fun refresh(): AppResult<Unit> {
         delay(delayMs)
