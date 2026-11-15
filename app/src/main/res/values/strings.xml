@@ -15,4 +15,14 @@
 
     <!-- Posts -->
     <string name="posts_title">Posts</string>
+    <string name="posts_open_paging3">Paging 3</string>
+    <string name="posts_search_hint">Search posts</string>
+    <string name="posts_search_clear">Clear search</string>
+    <string name="posts_search_no_results">No results for \"%1$s\"</string>
+    <string name="posts_favorite">Favorite</string>
+    <string name="posts_unfavorite">Unfavorite</string>
+    <string name="posts_toggle_favorite">Toggle favorite</string>
+    <string name="post_detail_title">Post</string>
+    <string name="post_detail_load_error">Couldn\'t load this post</string>
+    <string name="paged_posts_title">Posts (Paging 3)</string>
 </resources>
