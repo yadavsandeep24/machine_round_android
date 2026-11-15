@@ -33,3 +33,26 @@
 ```bash
 git diff 01-minimal..edtech/attendance-offline-sync
 ```
+
+## Follow-up: LLD (low-level design)
+- **Classes:** `AttendanceViewModel`, `AttendanceRepository` (local-first writes), `AttendanceStore` (outbox, Room), `AttendanceSyncer` (drains the outbox), `SyncScheduler` (WorkManager), `FakeErpServer` (stand-in API), `Clock`.
+- **The outbox record:** `version` vs `syncedVersion`, `attempts`, `lastError`, `overriddenByServer`. Derived `syncState` instead of a stored status, so it can never disagree with the versions.
+- **Conflict resolution as a strategy:** today last-writer-wins by timestamp; define a `ConflictResolver` interface so a school can pick "server wins", "teacher wins" or "flag for review" without touching the syncer.
+- **Ack scoped to the sent version:** an acknowledgement marks only the version that was uploaded, so an edit made mid-upload stays pending. Show the test.
+- **WorkManager policy:** `APPEND_OR_REPLACE` so marks made during a running sync get a follow-up run; with `KEEP` they'd wait for the next trigger.
+
+## Follow-up: HLD (high-level design)
+- **ERP sync API:** `POST /attendance/batch` with per-record idempotency keys and versions; the response returns per-record outcomes (accepted, conflict with the server value, rejected) so one bad record doesn't fail the batch.
+- **Source of truth:** the server; the device is a cache plus an outbox. Use server-assigned versions, or a per-record sequence, instead of trusting device clocks.
+- **Multi-device and multi-role:** two teachers or a teacher plus the office editing the same class; record who changed what, show conflicts, and keep a full audit log for compliance.
+- **Scale:** every school marks attendance between 9:00 and 9:30, so the sync endpoint must absorb a burst; queue writes and process them asynchronously, with the client retrying with backoff and jitter.
+- **Downstream:** parent notifications for absences sent only after the mark syncs and a grace period passes, so a corrected mark doesn't send a false alert.
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design a school ERP mobile app where teachers take attendance and marks offline, synced for 10,000 schools." About 45 minutes.
+1. **Requirements:** take attendance and enter marks offline, sync automatically, see sync status, parents notified of absences, office can correct records. Non-functional: no lost or duplicated data, correct under poor connectivity, auditable.
+2. **Client architecture:** local-first writes to Room with a versioned outbox; WorkManager sync with backoff; conflict resolver strategy; roster and timetable cached per teacher.
+3. **API and data model:** `POST /sync/batch` with idempotency keys and versions, per-record outcomes; records keyed by (class, date, student) with an audit log of changes.
+4. **Data flow:** tap → saved locally (instant) → outbox → batch upload → per-record result → conflicts shown to the teacher → notifications sent after sync plus a grace period.
+5. **Scale and performance:** burst traffic every morning, so queue writes and process asynchronously; multi-tenant data partitioned by school; client retries with jitter.
+6. **Trade-offs to state:** last-writer-wins vs manual review, server-assigned versions vs device clocks, how long data may stay unsynced before warning the teacher.
