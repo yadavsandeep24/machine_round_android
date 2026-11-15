@@ -35,3 +35,27 @@ Treat the problem as **reported, not confirmed by Adobe**.
 ```bash
 git diff 01-minimal..adobe/search-suggestions-infinite-scroll
 ```
+
+## Follow-up: LLD (low-level design)
+The reported round was LLD, so expect to draw this first.
+- **Classes:** `SearchViewModel` (coordinates), `SearchRepository` (interface), `SuggestionCache` (`LruCache`), `Paginator` (results), `FakeAssetServer` (stand-in for the API). Name each one's single responsibility.
+- **Extension point:** a `SuggestionProvider` interface (recent searches, popular terms, server suggestions) merged by a ranker. Strategy pattern: add a provider without touching the ViewModel.
+- **Cache design:** key = normalised prefix; capacity; LRU eviction via `LinkedHashMap(accessOrder = true)`; never cache failures. Follow-up: prefix reuse (filter cached "mou" results for "moun" locally instead of a new request).
+- **Concurrency:** `flatMapLatest` cancels stale suggestion requests; `Paginator` allows one page request at a time; a new submit resets the paginator before loading page 1.
+- **State:** suggestions and results are separate pipelines with separate state, so typing never clears the results the user is reading.
+
+## Follow-up: HLD (high-level design)
+- **Typeahead service:** a prefix index (trie or an edge-n-gram search index) built offline from query logs plus asset tags; served by a stateless suggestion service with an in-memory top-K per prefix.
+- **Latency budget:** under ~100 ms per keystroke, so cache hot prefixes at the edge/CDN (short TTL), keep payloads tiny (strings only), and debounce on the client.
+- **Search results:** a separate search service with cursor pagination and ranking (relevance, popularity, licence type); image thumbnails from a CDN with size variants.
+- **Personalisation:** per-user recent searches synced server-side; ranking can mix global and personal signals.
+- **Quality loop:** log impressions and clicks per suggestion to retrain ranking; A/B test ranking changes without an app release.
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design Adobe Stock's mobile search: typeahead plus an infinite grid of image results." About 45 minutes.
+1. **Requirements:** suggestions while typing, results grid with filters (orientation, colour, licence), infinite scroll, recent searches, preview and licence. Non-functional: suggestions under 100 ms, smooth grid scrolling, low data use.
+2. **Client architecture:** search module with two pipelines (suggestions, results); `Paginator` for the grid; image loader with size-aware thumbnails and memory/disk caches; filters in `SavedStateHandle`.
+3. **API and data model:** `GET /suggest?q=` (cached prefixes), `GET /search?q=&filters=&cursor=` returning asset ids, thumbnail URLs per size, and licence info.
+4. **Data flow:** debounce → suggest; submit → page 1 → paginate; tapping an asset opens a preview with a higher-resolution rendition.
+5. **Scale and performance:** CDN for thumbnails (WebP/AVIF), edge caching for hot prefixes, prefetch the next page and next screen of thumbnails, bounded caches.
+6. **Trade-offs to state:** thumbnail quality vs data, prefetch depth, client vs server filtering, personalised vs cacheable results.
