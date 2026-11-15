@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Machine Coding Starter</string>
-    <string name="home_placeholder">Start building here</string>
 
     <!-- Common -->
     <string name="action_retry">Retry</string>
@@ -13,4 +12,29 @@
     <string name="error_timeout">Request timed out</string>
     <string name="error_server">Server error (%1$d)</string>
     <string name="error_generic">Something went wrong</string>
+
+    <!-- Envelopes (sample app for the signing SDK) -->
+    <string name="envelopes_title">Envelopes</string>
+    <string name="envelopes_sync">Sync (%1$d)</string>
+    <string name="envelopes_sign_online">Sign</string>
+    <string name="envelopes_sign_offline">Sign offline</string>
+    <string name="envelopes_save_offline">Save offline</string>
+    <string name="envelopes_status_sent">Needs signature</string>
+    <string name="envelopes_status_pending">Signed · pending sync</string>
+    <string name="envelopes_status_completed">Completed</string>
+    <string name="envelopes_status_voided">Voided</string>
+    <string name="envelopes_offline_dialog_title">Sign offline</string>
+    <string name="envelopes_full_name">Full name</string>
+    <string name="envelopes_adopt_and_sign">Adopt and sign</string>
+    <string name="envelopes_cancel">Cancel</string>
+    <string name="envelopes_signed">Envelope signed</string>
+    <string name="envelopes_declined">Declined: %1$s</string>
+    <string name="envelopes_saved_offline">Saved for offline signing</string>
+    <string name="envelopes_signed_offline">Signed offline. It will sync when you\'re online.</string>
+    <string name="envelopes_sync_report">Synced %1$d · failed %2$d · voided %3$d</string>
+    <string name="envelopes_error_network">You\'re offline. Try again later.</string>
+    <string name="envelopes_error_auth">Session expired. Please sign in again.</string>
+    <string name="envelopes_error_not_found">This envelope no longer exists</string>
+    <string name="envelopes_error_not_offline">Save this envelope offline first</string>
+    <string name="envelopes_error_name">Please enter your full name</string>
 </resources>

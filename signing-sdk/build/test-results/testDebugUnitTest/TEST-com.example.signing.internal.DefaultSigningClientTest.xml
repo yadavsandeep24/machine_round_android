@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.signing.internal.DefaultSigningClientTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-15T12:23:50" hostname="Sandeep.local" time="0.266">
+  <properties/>
+  <testcase name="signing offline requires a downloaded copy" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.189"/>
+  <testcase name="signing twice keeps the first signature" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.011"/>
+  <testcase name="concurrent syncs submit each signature once" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.01"/>
+  <testcase name="refresh loads envelopes, offline download marks them available" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.013"/>
+  <testcase name="network failure keeps the signature queued and reports it" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.008"/>
+  <testcase name="retry after a lost response does not sign twice" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.003"/>
+  <testcase name="transport errors surface only as public SigningException types" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.003"/>
+  <testcase name="envelope voided while offline is rejected, not retried" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.01"/>
+  <testcase name="pending signatures survive an app restart" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.007"/>
+  <testcase name="offline signature is pending, then sync completes it" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.006"/>
+  <testcase name="revoked token is refreshed transparently" classname="com.example.signing.internal.DefaultSigningClientTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

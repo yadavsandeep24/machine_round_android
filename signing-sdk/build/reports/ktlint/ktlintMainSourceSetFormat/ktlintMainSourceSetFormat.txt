@@ -1,0 +1,4 @@
+[90m/Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/java/com/example/signing/internal/[0mOfflineSyncer.kt[90m:[0m3[90m:1:[0m Imports must be ordered in lexicographic order without any empty lines in-between [90m(standard:import-ordering)[0m
+
+Summary error count (descending) by rule:
+  standard:import-ordering: 1

@@ -1,0 +1,26 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml:2:1-11:12
+INJECTED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml:2:1-11:12
+	package
+		INJECTED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml:2:11-69
+application
+ADDED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml:4:5-10:19
+activity#com.example.signing.internal.SigningActivity
+ADDED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml:6:9-9:79
+	android:exported
+		ADDED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml:8:13-37
+	android:theme
+		ADDED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml:9:13-76
+	android:name
+		ADDED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml:7:13-53
+uses-sdk
+INJECTED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml
+INJECTED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/zeptodigital/StudioProjects/MachineCodingStarter/signing-sdk/src/main/AndroidManifest.xml

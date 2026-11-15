@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "MachineCodingStarter"
 include(":app")
+include(":signing-sdk")
