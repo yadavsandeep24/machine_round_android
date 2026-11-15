@@ -61,3 +61,26 @@ API: `https://projects.propublica.org/nonprofits/api/v2/search.json`
 - **Paging 3 instead of `Paginator`:** when you'd choose it, and why the hand-written version is easier to explain and test in an interview.
 - **Filters:** filter by state or NTEE category (the API supports `state[id]` and `ntee[id]`), with the filter state in `SavedStateHandle`.
 - **Scaling the modules:** split `:core` into `:core:network`, `:core:ui` and `:core:model`, use convention plugins for the repeated build config, and a `:feature-organizations:api` module if other features need to open the detail screen.
+
+## Follow-up: LLD (low-level design)
+- **Module and class map:** `:app` (shell, NavHost) → `:feature-organizations` (`NonprofitApi`, `OrganizationRepositoryImpl`, `OrganizationRepository`, list ViewModel, detail ViewModel, `organizationsGraph`) → `:core` (`Paginator`, `MviViewModel`, `safeCall`, `UiText`). Explain why features never depend on each other.
+- **Error mapping as a policy:** the repository turns HTTP 404 (no matches) and 400 (past the end) into successful empty pages and everything else into `Failure`. Discuss putting this in a `ResponseClassifier` if more endpoints share the quirks.
+- **One pipeline for browse and search:** a blank query means browse. Why that removes a whole code path and its bugs.
+- **Formatting is pure and tested:** `formatUsdCompact`, `formatEin`. Where formatting belongs (UI layer, not the domain).
+- **Adding a feature module:** what goes in `:feature-x:api` (routes, interfaces) vs `:feature-x:impl`, and how navigation between features works without a dependency cycle.
+
+## Follow-up: HLD (high-level design)
+- **If you owned the backend:** a search service over the IRS data (nightly ingest of the EO BMF extract and filings), indexed for name, location and NTEE code; cursor pagination instead of page numbers capped at 10,000 results.
+- **Caching:** responses are effectively static per day, so cache at the CDN with long TTLs and `ETag`; cache list pages and details in Room for offline browsing.
+- **API contract:** return `[]` with 200 for "no matches" and a `nextCursor` for paging, instead of 404 and 400. Say how you'd version that change without breaking old clients.
+- **Detail payload:** the filings endpoint is large; add field selection or a summary endpoint for mobile.
+- **Rate limits and resilience:** respect the public API's limits with client-side debounce, retries with backoff and jitter, and a circuit breaker that shows cached data when the API is down.
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design a charity discovery app on top of public IRS non-profit data: search, browse by category and location, and detailed financials." About 45 minutes.
+1. **Requirements:** search by name, filter by state and category, browse, view financial history, save favourites offline. Non-functional: fast search, works on poor networks, data refreshed daily.
+2. **Client architecture:** feature modules (search, detail, favourites) on a shared core; MVI list with debounced search and pagination; Room cache for viewed organisations and favourites.
+3. **API and data model:** your own backend ingests the IRS extracts nightly into a search index; `GET /orgs?q=&state=&ntee=&cursor=` and `GET /orgs/{ein}?fields=summary,filings`.
+4. **Data flow:** search → page 1 → paginate; detail loads summary first then filings; favourites stored locally and synced when signed in.
+5. **Scale and performance:** data changes daily, so cache aggressively at the CDN; small summary payloads for lists; filings fetched lazily.
+6. **Trade-offs to state:** wrapping the public API vs your own index, data freshness vs cost, fixing the API quirks (404 for no results) in your own contract.
