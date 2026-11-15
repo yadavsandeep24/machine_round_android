@@ -28,6 +28,7 @@ Each branch is a step you can check out and practise from. Feature branches all 
 | `nykaa/product-listing-filters-cart` | Product list with filters and sort, a shared cart, and live stock that corrects the cart |
 | `reddit/comment-thread-filter` | Dog/cat comment-subtree filter with the score follow-up, in a threaded collapsible list |
 | `docusign/offline-signing-sdk` | Senior SDK-design exercise: an Android library (explicit API, binary-compat check) with offline signing outbox, token single-flight, and a hardened WebView with exactly-once results |
+| `docusign/organization-viewer` | **DocuSign's own published Android candidate task** (2020): browse non-profits from the ProPublica API. Multi-module (`:app`, `:core`, `:feature-organizations`), handles the API's 404/400 quirks, MockWebServer functional tests and Compose UI tests |
 
 **Domain problems** (EdTech and ERP, built from `01-minimal`):
 
