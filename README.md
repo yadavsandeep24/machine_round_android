@@ -1,10 +1,16 @@
-# Machine Coding Starter (Android): `00-empty`
+# Machine Coding Starter (Android): `01-minimal`
 
-An empty but fully configured app: what many interviewers hand you at the start of a round.
+Core infrastructure with no features. Start a round here when the interviewer lets you set up your own architecture.
 
-**Included:** Gradle version catalog with every dependency the later branches use (Compose, Hilt, Retrofit, kotlinx.serialization, Room, Paging 3, DataStore, Coil, Timber, test libraries), a Hilt `Application` that plants Timber in debug, an edge-to-edge `MainActivity`, a Material 3 theme, ktlint and detekt.
+**Added on top of `00-empty`:**
+- `core/common`: `AppResult` (pure Kotlin, safe for the domain layer) and `@IoDispatcher`
+- `core/network`: `NetworkModule` (OkHttp with Timber logging, Retrofit, kotlinx.serialization `Json`) and `safeCall`
+- `core/mvi`: `MviViewModel` base (State + Intent + one-off Effects through a `Channel`)
+- `core/ui`: `UiText` (strings without a `Context`), `UiState`, `toUserMessage()`, loader, error and list-footer composables
+- `navigation/`: `NavHost` with type-safe `@Serializable` routes
+- Tests: `MainDispatcherRule` and `SafeCallTest`
 
-**Not included:** any architecture or feature code. Next step: `01-minimal`.
+**Not here yet:** Room. `@Database` needs at least one entity, so `AppDatabase` arrives with the first feature in `02-posts-list`.
 
 ## Branches
 
