@@ -39,3 +39,26 @@
 ```bash
 git diff 01-minimal..edtech/offline-course-downloads
 ```
+
+## Follow-up: LLD (low-level design)
+- **Classes:** `CourseViewModel`, `DownloadRepository`, `DownloadStore` (Room), `DownloadScheduler` (WorkManager), `LessonDownloadWorker` (thin adapter), `LessonDownloadProcessor` (logic), `LessonDownloader` (transfer), `LessonFileStore` (files), `NetworkMonitor`. Every Android-specific piece sits behind an interface.
+- **Download state machine:** `NotDownloaded → Queued → Downloading(%) → Downloaded`, with `Failed` and cancel transitions. Draw it; who is allowed to move each transition (repository vs worker).
+- **Why a processor separate from the worker:** WorkManager is hard to unit test; the processor is plain Kotlin with fakes, and the worker only maps outcomes to `Result.success/retry/failure`.
+- **Idempotency and cleanup:** unique work per lesson with `KEEP`; partial files deleted on cancel or error; progress written to the database once per percent, not per chunk.
+- **Pause/resume design:** add a `Paused` state, store bytes downloaded, and resume with an HTTP `Range` header.
+
+## Follow-up: HLD (high-level design)
+- **Content delivery:** videos transcoded into adaptive renditions (HLS/DASH) and served from a CDN; downloads pick one rendition by device storage and network (e.g. 480p on cellular).
+- **Licences and DRM:** offline playback with Widevine persistent licences that expire (e.g. 30 days) and renew when online; revoke licences when a subscription ends.
+- **Entitlements:** the server signs short-lived download URLs per user and lesson; the app never gets a permanent public link.
+- **Storage policy:** device quota per course, LRU eviction of watched lessons, and a "download whole module" bulk action that schedules work in batches.
+- **Progress sync:** watch progress recorded locally while offline, then synced idempotently (per lesson, max position wins) so streaks and analytics stay correct.
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design offline video learning for an EdTech app like Quest: download courses, watch on a train, sync progress." About 45 minutes.
+1. **Requirements:** download lessons or whole modules, play offline, resume progress, expire downloads with the subscription. Non-functional: survive app kills, respect storage limits, protect paid content.
+2. **Client architecture:** download manager (WorkManager + state machine) or ExoPlayer `DownloadService`; Room for course outline, downloads and progress; DRM licence manager; network and storage monitors.
+3. **API and data model:** `GET /courses/{id}` (outline), signed short-lived download URLs per rendition, licence endpoint, `PUT /progress` (per lesson, max position wins).
+4. **Data flow:** user picks quality → work scheduled with constraints → chunks downloaded with resume → licence fetched → offline playback → progress synced later.
+5. **Scale and performance:** HLS/DASH renditions on a CDN, Wi-Fi-only by default, bulk downloads batched, LRU eviction when storage is low.
+6. **Trade-offs to state:** DRM cost and complexity vs piracy risk, rendition size vs quality, licence lifetime vs offline convenience.
