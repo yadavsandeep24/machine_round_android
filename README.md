@@ -1,17 +1,22 @@
-# Machine Coding Starter (Android): `02-posts-list`
+# Machine Coding Starter (Android): `feature/auth-token-refresh`
 
-The base every feature branch starts from: one simple, complete feature with clean architecture and MVI.
+Starts from `02-posts-list` and adds the networking side of authentication. JSONPlaceholder has no login, so with no token saved the app behaves exactly as before.
 
-**Added on top of `01-minimal`:**
-- `core/model/Post`, `core/network/api` (`PostApi`, `PostDto`), `core/database` (`AppDatabase`, `DatabaseModule`)
-- `feature/posts`, in Clean Architecture layers:
-  - **data:** `PostEntity`, `PostDao` (atomic `replaceAll`), mappers, and an offline-first `PostRepositoryImpl` (the UI observes Room; the network writes into Room)
-  - **domain:** the `PostRepository` interface, `ObservePostsUseCase`, `RefreshPostsUseCase`
-  - **ui (MVI):** `PostListContract` (State / Intent / Effect), `PostListViewModel`, a stateful `PostListRoute` plus a stateless `PostListScreen` with a preview
-- **States:** full-screen loading, full-screen error with retry, empty, data, and pull-to-refresh. When offline with cached data, the cache stays on screen and a snackbar explains why.
-- **Tests:** `FakePostRepository` and 5 ViewModel tests
+**What this feature shows** (`core/network/auth/`):
+- **`AuthInterceptor`:** adds `Authorization: Bearer <token>` when a token exists. Public endpoints opt out with `@Headers("No-Auth: true")`.
+- **`TokenAuthenticator`:** OkHttp calls it on every 401.
+  - `synchronized`: 5 parallel 401s cause **one** refresh. Threads that waited notice that the token already changed and reuse it.
+  - The number of retries is capped, so a rejected new token can't loop forever.
+  - The refresh call uses a separate `@AuthClient` OkHttp client without the authenticator, so it can't recurse. The two clients share a connection pool through `newBuilder()`.
+  - Only a 400/401/403 from the refresh endpoint logs the user out. A 5xx, a timeout or bad JSON keeps the session.
+- **`DataStoreTokenStore`:** Preferences DataStore behind a `TokenStore` interface. `isLoggedIn: Flow<Boolean>` is meant to be observed at the app root to send the user to login. In production, encrypt the values (e.g. with Tink).
+- **`AuthApi`:** a placeholder `POST auth/refresh`. Rename it to match your backend.
+- **Logging:** the `Authorization` header is redacted in OkHttp logs.
+- **Tests (5, with MockWebServer):** refresh and retry, parallel 401s causing a single refresh, a rejected refresh token logging out, a server error keeping the session, and no token meaning no header and no refresh.
 
-**Practise from here:** branch off and build a detail screen, pagination, search, Paging 3 or auth. Then compare with the matching `feature/*` branch.
+```bash
+git diff 02-posts-list..feature/auth-token-refresh
+```
 
 ## Branches
 
