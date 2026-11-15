@@ -22,6 +22,29 @@ keystroke -> state.query (instant, so the text field never lags)
 git diff 02-posts-list..feature/search-debounce
 ```
 
+## Follow-up: LLD (low-level design)
+- **The pipeline as composable operators:** `debounce` → `map(trim)` → `distinctUntilChanged` → `combine(retryTrigger)` → `flatMapLatest`. Be ready to explain each operator, and what breaks if you swap `flatMapLatest` for `flatMapMerge` (stale results overwrite fresh ones).
+- **Two queries in state:** `query` (what's typed) vs `searchedQuery` (what the results belong to). The gap between them is the "pending" state. Why both are needed for correct empty and loading states.
+- **Retry with `distinctUntilChanged`:** a retry of the same query would be filtered out, so a counter is combined in. Alternative: `MutableSharedFlow` trigger.
+- **Process death:** the query lives in `SavedStateHandle.getStateFlow`, so the pipeline restarts itself on restore.
+- **Testability:** virtual time (`advanceTimeBy`, `runCurrent`) proves the debounce and the cancellation without real delays.
+
+## Follow-up: HLD (high-level design)
+- **Typeahead backend:** a search index (Elasticsearch/OpenSearch or a trie-based suggestion service) separate from the primary database; the app calls `GET /search?q=&limit=`.
+- **Load control:** client debounce plus a minimum query length; server-side rate limits per user and request coalescing for identical popular prefixes.
+- **Caching:** popular prefixes cached at the CDN/edge with short TTLs; recent searches stored on the device.
+- **Relevance and personalisation:** ranking signals (popularity, recency, the user's history) live server-side so they can change without an app release.
+- **Offline:** search the local Room cache when offline, clearly labelled as "results from your saved items".
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design search with typeahead for an app with 10M items." About 45 minutes.
+1. **Requirements:** suggestions as the user types, full results on submit, recent searches, offline search of saved items. Non-functional: suggestions under 100 ms, results under 500 ms.
+2. **Client architecture:** debounce → distinct → `flatMapLatest` pipeline in the ViewModel; separate state for suggestions and results; recent searches in DataStore.
+3. **API and data model:** `GET /suggest?q=&limit=8` (strings only) and `GET /search?q=&cursor=` (results); the index lives in a search engine, not the primary database.
+4. **Data flow:** keystrokes debounced on device; suggestion requests cancelled when stale; submit loads page 1, then paginates.
+5. **Scale and performance:** edge cache for popular prefixes, rate limits per user, request coalescing, a minimum query length.
+6. **Trade-offs to state:** client vs server ranking, freshness of the index, personalisation vs cacheability.
+
 ## Branches
 
 Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
