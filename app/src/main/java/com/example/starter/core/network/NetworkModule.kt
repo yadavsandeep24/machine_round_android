@@ -1,6 +1,7 @@
 package com.example.starter.core.network
 
 import com.example.starter.BuildConfig
+import com.example.starter.core.network.api.PostApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -47,8 +48,10 @@ object NetworkModule {
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
 
-    // Add one provider per API interface, e.g.
-    // @Provides @Singleton fun provideFooApi(retrofit: Retrofit): FooApi = retrofit.create(FooApi::class.java)
+    // Add one provider per API interface.
+    @Provides
+    @Singleton
+    fun providePostApi(retrofit: Retrofit): PostApi = retrofit.create(PostApi::class.java)
 
     private const val TIMEOUT_SECONDS = 15L
 }
