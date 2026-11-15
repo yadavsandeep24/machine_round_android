@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Machine Coding Starter</string>
-    <string name="home_placeholder">Start building here</string>
 
     <!-- Common -->
     <string name="action_retry">Retry</string>
@@ -13,4 +12,15 @@
     <string name="error_timeout">Request timed out</string>
     <string name="error_server">Server error (%1$d)</string>
     <string name="error_generic">Something went wrong</string>
+
+    <!-- Comments -->
+    <string name="comments_title">Dogs vs cats</string>
+    <string name="comments_pref_dog">Dog person</string>
+    <string name="comments_pref_cat">Cat person</string>
+    <string name="comments_pref_all">Show all</string>
+    <string name="comments_rescue_off">No score rule</string>
+    <string name="comments_rescue_above">Keep &gt; %1$d pts</string>
+    <string name="comments_hidden_count">%1$d comments hidden</string>
+    <string name="comments_collapse">Hide %1$d replies</string>
+    <string name="comments_expand">Show %1$d replies</string>
 </resources>

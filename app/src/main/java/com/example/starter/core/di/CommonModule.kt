@@ -1,5 +1,6 @@
 package com.example.starter.core.di
 
+import com.example.starter.core.common.DefaultDispatcher
 import com.example.starter.core.common.IoDispatcher
 import dagger.Module
 import dagger.Provides
@@ -14,4 +15,8 @@ object CommonModule {
     @Provides
     @IoDispatcher
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @DefaultDispatcher
+    fun provideDefaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
 }

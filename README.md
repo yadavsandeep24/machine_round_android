@@ -1,45 +1,38 @@
-# Machine Coding Starter (Android): `01-minimal`
+# `reddit/comment-thread-filter`
 
-Core infrastructure with no features. Start a round here when the interviewer lets you set up your own architecture.
+**Company:** Reddit · **Track reported:** Android, full-time (experienced) · **Reported:** Q4 2026 (posted Nov 2026) · **Base branch:** `01-minimal`
 
-**Added on top of `00-empty`:**
-- `core/common`: `AppResult` (pure Kotlin, safe for the domain layer) and `@IoDispatcher`
-- `core/network`: `NetworkModule` (OkHttp with Timber logging, Retrofit, kotlinx.serialization `Json`) and `safeCall`
-- `core/mvi`: `MviViewModel` base (State + Intent + one-off Effects through a `Channel`)
-- `core/ui`: `UiText` (strings without a `Context`), `UiState`, `toUserMessage()`, loader, error and list-footer composables
-- `navigation/`: `NavHost` with type-safe `@Serializable` routes
-- Tests: `MainDispatcherRule` and `SafeCallTest`
+## The problem (paraphrased from the report)
+Each comment has an id, an optional parent and a **dog or cat** label.
+- **Task:** for a *dog person*, hide every cat comment **and all of its replies**; for a *cat person*, the reverse. Return the ids to hide. The candidate's approach was to build a graph from the parent links and traverse it with BFS or DFS.
+- **Follow-up:** comments whose score is above a threshold should still be shown. The candidate ran out of time on this part.
+- **Also asked:** a conceptual question about coroutines and `suspend`.
 
-**Not here yet:** Room. `@Database` needs at least one entity, so `AppDatabase` arrives with the first feature in `02-posts-list`.
+The reported question was algorithmic, not a UI build. This branch solves it as a pure function, then wraps it in the Android screen you'd expect at Reddit: a threaded, collapsible comment list.
 
-## Branches
+## Sources and verification
+| Claim | Source | Status |
+|---|---|---|
+| Comment-filtering question with dog/cat labels, a subtree exclusion rule and a score-threshold follow-up (Q4 2026) | Aggregated candidate report on FastPrep, "2026 Reddit Experienced SWE and Android Phone Screens and Virtual Onsite" | Second-hand: an aggregator page, posted Nov 2026 |
+| Reddit's Android app uses Jetpack Compose and treats post and comment screens as critical user journeys | Android Developers Blog (Google), "Reddit improved app startup speed using Baseline Profiles and R8", Dec 2024 | Official (Google, with Reddit) |
+| Reddit publishes its interview questions | Not found | Not verifiable |
 
-Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
+## What's implemented
+- **`CommentFilter.hiddenIds()`:** a children map plus BFS, O(n). A hidden comment hides its whole subtree.
+  - **Follow-up rule:** a comment scoring above the threshold is rescued, but a rescued comment under a hidden ancestor stays hidden. This rule is written down, and the tests pin it.
+  - **Malformed data:** a visited set means a cycle can't loop forever.
+- **`ThreadFlattener.flatten()`:** turns the tree into rows for a `LazyColumn`. It walks the tree in pre-order with siblings sorted by score, and records depth and reply count for each row.
+  - It uses an iterative DFS, so a 20,000-deep reply chain doesn't overflow the stack (tested).
+  - Collapsed comments keep their row but skip their replies, and replies to a deleted parent show as top-level.
+- **ViewModel:** `combine(comments, preference, threshold, collapsed)` → filter → flatten, run with `flowOn(@DefaultDispatcher)`, because tree work is CPU-bound and shouldn't run on Main.
+- **UI:** chips for the preference (Dog person, Cat person, Show all) and the score rule (off, >10, >50), indented threads with guide lines, tap to collapse or expand, and an "N comments hidden" count.
+- **Tests (17):** 5 filter tests, 4 flattener tests, 5 ViewModel tests and 3 `safeCall` tests.
 
-| Branch | What it adds |
-|---|---|
-| `00-empty` | Compose + Hilt app, all dependencies, theme, Timber, ktlint/detekt, a blank screen. This is what many interviewers hand you. |
-| `01-minimal` | Core infrastructure with no features: Retrofit/OkHttp/Json, `safeCall`, `AppResult`, MVI base, `UiText`/`UiState`, error messages, shared composables, navigation shell |
-| `02-posts-list` | A basic feature: fetch posts, cache in Room (offline-first), loading/error/empty states, pull-to-refresh, MVI |
-| `feature/post-detail` | Detail screen (MVVM), type-safe navigation argument, network fallback for uncached posts |
-| `feature/pagination-manual` | Hand-written load-more with a reusable `Paginator`, scroll trigger, footer states |
-| `feature/search-debounce` | Server-side search: debounce, `distinctUntilChanged`, `flatMapLatest` cancellation, `SavedStateHandle` |
-| `feature/paging3` | Paging 3 with `RemoteMediator`, a Room `PagingSource` and remote keys |
-| `feature/auth-token-refresh` | Auth interceptor, a synchronized refresh `Authenticator`, DataStore token store, MockWebServer tests |
-| `main` | Everything combined, plus favorites and search with pagination |
-
-```bash
-git checkout 02-posts-list && git checkout -b my-attempt   # practise a feature yourself
-git diff 02-posts-list..feature/search-debounce            # then compare with the reference
-```
-
-## Run
-
-Open in Android Studio (JDK 17), or:
+## Talking points
+- **BFS vs DFS** for the subtree, and why recursion is risky on deep threads.
+- **Clarifying the follow-up:** does a rescued comment rescue its replies, and does a hidden ancestor override a rescue? Ask the interviewer before coding.
+- **Large threads at Reddit scale:** load collapsed "more replies" stubs from the server and page them, and diff rows with stable keys.
 
 ```bash
-./gradlew assembleDebug testDebugUnitTest
-./gradlew ktlintCheck detekt        # ktlintFormat auto-fixes style
+git diff 01-minimal..reddit/comment-thread-filter
 ```
-
-The full write-up (architecture, MVVM vs MVI, pagination, search, SOLID, production basics) is in the README on `main`.
