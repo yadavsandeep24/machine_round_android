@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.example.signing.internal.RedactorTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-15T12:23:50" hostname="Sandeep.local" time="0.002">
-  <properties/>
-  <testcase name="masks emails and long numbers" classname="com.example.signing.internal.RedactorTest" time="0.002"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>
