@@ -1,45 +1,35 @@
-# Machine Coding Starter (Android): `01-minimal`
+# `edtech/attendance-offline-sync`
 
-Core infrastructure with no features. Start a round here when the interviewer lets you set up your own architecture.
+**Domain problem** (not from a company report), designed around your ERP work (`erp_sdk`, "zdl erp"). **Base branch:** `01-minimal` · **Suggested time:** 2 hours (senior)
 
-**Added on top of `00-empty`:**
-- `core/common`: `AppResult` (pure Kotlin, safe for the domain layer) and `@IoDispatcher`
-- `core/network`: `NetworkModule` (OkHttp with Timber logging, Retrofit, kotlinx.serialization `Json`) and `safeCall`
-- `core/mvi`: `MviViewModel` base (State + Intent + one-off Effects through a `Channel`)
-- `core/ui`: `UiText` (strings without a `Context`), `UiState`, `toUserMessage()`, loader, error and list-footer composables
-- `navigation/`: `NavHost` with type-safe `@Serializable` routes
-- Tests: `MainDispatcherRule` and `SafeCallTest`
+## Problem statement (as an interviewer would give it)
+> Teachers take attendance in classrooms with patchy Wi-Fi.
+> - Show today's roster for a class, cached so it opens offline.
+> - Mark each student Present or Absent, plus "mark the rest present". **Every tap must work instantly, online or offline.**
+> - Marks sync to the ERP server in the background, survive app kills, wait for network and retry with backoff. Show the sync state for each student (pending, synced, failed) and a count of pending marks.
+> - Retries must never double-apply a mark. If the teacher changes a mark while it's uploading, the newer choice must win.
+> - If the school office corrected a mark on the web portal after the teacher marked it, the newer correction wins and the app shows that it was updated.
 
-**Not here yet:** Room. `@Database` needs at least one entity, so `AppDatabase` arrives with the first feature in `02-posts-list`.
+## What's implemented
+- **Outbox pattern:** each `(class, date, student)` row carries a `version` and a `syncedVersion`. A row is in the outbox while `version > syncedVersion`. The UI reads only Room, so marking never waits for the network.
+- **Idempotency:** `requestId = key + version`. If the response to an upload is lost and the upload is retried, the server recognises the request and doesn't write again (tested).
+- **Edits during an upload:** an acknowledgement marks only the version that was sent. An edit made while the batch was in flight stays pending and goes out on the next pass (tested).
+- **Conflicts:** last-writer-wins by `updatedAt`. When the server's value is newer, the app adopts it and sets `overriddenByServer`, which shows a "Updated from portal" chip (tested).
+- **No-op edits:** setting the same value again creates no outbox work.
+- **WorkManager:** unique work with `APPEND_OR_REPLACE`, so marks made during a running sync get a follow-up run (with `KEEP` they would be dropped). Constraints: network connected, with exponential backoff.
+  - The worker is a thin `@HiltWorker` over `AttendanceSyncer`, which drains the outbox in batches of 50 and can be unit-tested.
+- **Room without destructive migration:** unlike the other branches, the outbox holds data that hasn't synced yet, so wiping the database would lose user data.
+- **`NetworkMonitor`:** shows an offline banner. "Sync now" while offline explains that the sync will happen later.
+- **Tests (14):** 6 syncer tests, 5 ViewModel tests and 3 `safeCall` tests.
+  - The syncer tests cover draining, a failure followed by a retry, an idempotent replay, no-op edits, a portal conflict, and an edit made while its upload is in flight.
 
-## Branches
-
-Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
-
-| Branch | What it adds |
-|---|---|
-| `00-empty` | Compose + Hilt app, all dependencies, theme, Timber, ktlint/detekt, a blank screen. This is what many interviewers hand you. |
-| `01-minimal` | Core infrastructure with no features: Retrofit/OkHttp/Json, `safeCall`, `AppResult`, MVI base, `UiText`/`UiState`, error messages, shared composables, navigation shell |
-| `02-posts-list` | A basic feature: fetch posts, cache in Room (offline-first), loading/error/empty states, pull-to-refresh, MVI |
-| `feature/post-detail` | Detail screen (MVVM), type-safe navigation argument, network fallback for uncached posts |
-| `feature/pagination-manual` | Hand-written load-more with a reusable `Paginator`, scroll trigger, footer states |
-| `feature/search-debounce` | Server-side search: debounce, `distinctUntilChanged`, `flatMapLatest` cancellation, `SavedStateHandle` |
-| `feature/paging3` | Paging 3 with `RemoteMediator`, a Room `PagingSource` and remote keys |
-| `feature/auth-token-refresh` | Auth interceptor, a synchronized refresh `Authenticator`, DataStore token store, MockWebServer tests |
-| `main` | Everything combined, plus favorites and search with pagination |
-
-```bash
-git checkout 02-posts-list && git checkout -b my-attempt   # practise a feature yourself
-git diff 02-posts-list..feature/search-debounce            # then compare with the reference
-```
-
-## Run
-
-Open in Android Studio (JDK 17), or:
+## Follow-ups to prepare
+- **Server-assigned versions** or vector clocks instead of client timestamps, and handling clock skew.
+- **Bulk "mark all":** a single transaction, with uploads batched by the server's limit.
+- **Retention and audit:** keep a history of who changed what and when.
+- **Multiple devices:** two teachers marking the same class.
+- **Reporting sync health:** how long marks stay pending, alerting when they're stuck, and telemetry on attempts.
 
 ```bash
-./gradlew assembleDebug testDebugUnitTest
-./gradlew ktlintCheck detekt        # ktlintFormat auto-fixes style
+git diff 01-minimal..edtech/attendance-offline-sync
 ```
-
-The full write-up (architecture, MVVM vs MVI, pagination, search, SOLID, production basics) is in the README on `main`.

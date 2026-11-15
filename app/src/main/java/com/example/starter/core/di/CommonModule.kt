@@ -1,5 +1,6 @@
 package com.example.starter.core.di
 
+import com.example.starter.core.common.Clock
 import com.example.starter.core.common.IoDispatcher
 import dagger.Module
 import dagger.Provides
@@ -14,4 +15,7 @@ object CommonModule {
     @Provides
     @IoDispatcher
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    fun provideClock(): Clock = Clock { System.currentTimeMillis() }
 }
