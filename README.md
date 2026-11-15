@@ -73,3 +73,26 @@ Run the app, then:
 - **PDF rendering:** `PdfRenderer` tiles with a bitmap pool, and mapping signature-field coordinates correctly across zoom levels (your Hurix annotations experience).
 - **Security:** certificate pinning trade-offs, Play Integrity, root detection, and encrypting offline documents with Keystore-backed AES-GCM.
 - **Kotlin Multiplatform:** share `TokenManager`, the outbox and the store logic with iOS (your KMP Core API SDK), keeping the WebView and UI platform-native.
+
+## Follow-up: LLD (low-level design)
+- **Public surface:** `SigningClient` (interface), `SigningSdk.Builder`, `SignEnvelope` (contract), sealed `SigningResult`/`SigningException`, models. Everything else is `internal`. Explain explicit API mode and the binary-compatibility check.
+- **Internal classes:** `DefaultSigningClient` (facade), `TokenManager` (single-flight cache), `OfflineStore` (atomic JSON file), `OfflineSyncer` (outbox drain), `SigningActivity` + `SigningResultGate` + `BridgeMessageParser` + `OriginPolicy`. Draw the dependencies; none point back to the public layer.
+- **Patterns:** Facade (client), Builder (configuration), Strategy seam (`EnvelopeService` swaps the transport), State machine (result gate: pending → delivered), Observer (`envelopes: Flow`).
+- **Idempotency in code:** the `requestId` is created once when signing, persisted with the outbox item, and reused on every retry.
+- **Threading and lifecycle:** suspend functions are main-safe; the store writes on IO under a `Mutex`; the WebView is created and destroyed with the activity.
+
+## Follow-up: HLD (high-level design)
+- **End-to-end flow:** host app → host backend (holds the integration key, mints short-lived tokens) → eSignature API. Envelope created server-side, recipient view URL generated, completion reported by **Connect webhooks** to the host backend (the SDK only refreshes).
+- **Offline signing server side:** submissions are idempotent by request id; the server validates the envelope is still active (not voided or expired) and records the device timestamp plus server receive time in the audit trail.
+- **Document integrity:** documents hashed and tamper-sealed after signing; the certificate of completion lists every event with timestamps and IP/device data.
+- **Storage and compliance:** documents encrypted at rest, regional data residency, retention policies; the SDK keeps offline copies in no-backup storage and deletes them after sync.
+- **Observability:** per-SDK-version error rates, sync latency, WebView failures, and a kill switch to disable offline signing remotely.
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design DocuSign's mobile signing: an SDK partners embed plus the backend behind it, including offline signing." About 45 minutes. This is the likely senior or lead round.
+1. **Requirements:** embedded online signing, offline signing with later sync, envelope status, notifications, audit trail. Non-functional: legally valid audit trail, documents secure at rest and in transit, a small SDK, no secrets on devices.
+2. **Client (SDK) architecture:** public facade + builder; online signing in a hardened WebView with an exactly-once result; offline outbox with idempotency keys; token provider callback; telemetry without PII.
+3. **API and data model:** host backend → eSignature API for envelopes and recipient views; envelopes, documents, recipients, tabs and events; `POST /offline-signatures` idempotent by request id.
+4. **Data flow:** online: host backend creates the envelope and signing URL → SDK opens the ceremony → completion goes to the host via webhooks. Offline: download → sign locally → outbox → sync → server validates the envelope state and seals the document.
+5. **Scale and performance:** document storage in object storage with encryption and regional residency; webhooks with retries; rendering large PDFs in tiles on device.
+6. **Trade-offs to state:** WebView ceremony vs native rendering, how long offline documents may stay on a device, device timestamps vs server time in the audit trail, SDK size vs features.
