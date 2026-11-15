@@ -43,6 +43,11 @@ git checkout 02-posts-list && git checkout -b my-attempt   # practise a feature 
 git diff 02-posts-list..feature/search-debounce            # then compare with the reference
 ```
 
+**Follow-up sections:** every machine-round branch README (all except `00-empty` and `01-minimal`) ends with three sections to rehearse after you build it:
+- **LLD:** the classes and interfaces to draw, the patterns and extension points.
+- **HLD:** the backend and API design behind the feature.
+- **System design (mock round):** a 45-minute prompt with a structured answer covering requirements, client architecture, API and data model, data flow, scale and trade-offs.
+
 ## Architecture
 
 ```
