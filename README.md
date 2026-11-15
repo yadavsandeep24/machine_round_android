@@ -18,6 +18,29 @@ Starts from `02-posts-list` and adds the networking side of authentication. JSON
 git diff 02-posts-list..feature/auth-token-refresh
 ```
 
+## Follow-up: LLD (low-level design)
+- **Responsibilities:** `AuthInterceptor` (adds the header), `TokenAuthenticator` (reacts to 401), `TokenStore` (persistence behind an interface), `AuthApi` (refresh call on a separate client). Why each is separate and testable on its own.
+- **Concurrency:** `synchronized` plus the "already refreshed?" check means N parallel 401s cause one refresh. Why not a coroutine `Mutex`? `Authenticator` is a blocking OkHttp API, so `runBlocking` inside is acceptable there and nowhere else.
+- **Loop protection:** count prior responses and give up after a limit; the refresh client has no authenticator, so it can't recurse.
+- **Logout policy as a decision table:** 400/401/403 from refresh → clear tokens; 5xx, timeout or bad JSON → keep the session. Tested with MockWebServer.
+- **Opt-out:** a `No-Auth` header for public endpoints instead of a URL allow-list in the interceptor.
+
+## Follow-up: HLD (high-level design)
+- **Token model:** short-lived access token (minutes) plus a long-lived, rotating refresh token; refresh-token reuse detection on the server revokes the whole session family.
+- **Where secrets live:** the client never holds client secrets; OAuth 2.0 with PKCE for login. Tokens encrypted at rest (Keystore-backed).
+- **Logout everywhere:** server-side session list; revoking a session makes its refresh token fail with 401, which the client turns into a logout.
+- **Observability:** refresh rate, refresh failures by status code, forced logouts per app version.
+- **Multiple processes or apps:** a single source of truth for tokens (one process, or a ContentProvider), otherwise two processes rotate the refresh token and one gets logged out.
+
+## Follow-up: System design (mock round)
+**Prompt:** "Design authentication and session management for a banking or payments app." About 45 minutes.
+1. **Requirements:** login (password + OTP or biometrics), stay signed in safely, log out on all devices, step-up auth for sensitive actions. Non-functional: secure storage, no secrets in the app, resilient to network blips.
+2. **Client architecture:** auth module with `AuthInterceptor`, `TokenAuthenticator`, encrypted `TokenStore`, and a session state (`LoggedIn`/`LoggedOut`) observed at the app root.
+3. **API and data model:** OAuth 2.0 with PKCE; short-lived access tokens, rotating refresh tokens, a server-side session list per user and device.
+4. **Data flow:** every request carries the access token; a 401 triggers one refresh shared by all requests; a rejected refresh logs out; biometrics unlock a Keystore key for step-up.
+5. **Scale and performance:** stateless JWT validation at the gateway, refresh-token reuse detection, rate limits on login and OTP.
+6. **Trade-offs to state:** token lifetimes, certificate pinning risk, how much to trust device biometrics, offline access to cached data.
+
 ## Branches
 
 Each branch is a step you can check out and practise from. Feature branches all start from `02-posts-list`, so a diff against it shows exactly one feature.
