@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -36,6 +38,11 @@ import com.example.starter.core.model.Post
 import com.example.starter.core.ui.CenteredLoader
 import com.example.starter.core.ui.CenteredText
 import com.example.starter.core.ui.ErrorView
+import com.example.starter.core.ui.ListFooterEnd
+import com.example.starter.core.ui.ListFooterError
+import com.example.starter.core.ui.ListFooterLoading
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 /** Stateful route: wires the ViewModel, collects one-off effects. */
 @Composable
@@ -73,22 +80,50 @@ fun PostListScreen(state: PostListState, snackbar: SnackbarHostState, onIntent: 
                 state.error != null && state.posts.isEmpty() ->
                     ErrorView(state.error.asString()) { onIntent(PostListIntent.Retry) }
                 state.posts.isEmpty() -> CenteredText(stringResource(R.string.empty_generic))
-                else -> PostList(state.posts)
+                else -> PostList(state, onIntent)
             }
         }
     }
 }
 
 @Composable
-private fun PostList(posts: List<Post>) {
+private fun PostList(state: PostListState, onIntent: (PostListIntent) -> Unit) {
+    val listState = rememberLazyListState()
+
+    // Trigger the next page when the last visible item is within PREFETCH_DISTANCE of the end.
+    // snapshotFlow re-emits when totalItems changes, so a short page that still fits on screen
+    // keeps loading until the screen is filled. The ViewModel/Paginator guard against duplicates.
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            val info = listState.layoutInfo
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+            val total = info.totalItemsCount
+            (total > 0 && lastVisible >= total - 1 - PREFETCH_DISTANCE) to total
+        }
+            .distinctUntilChanged()
+            .filter { (nearEnd, _) -> nearEnd }
+            .collect { onIntent(PostListIntent.LoadNextPage) }
+    }
+
     LazyColumn(
+        state = listState,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(posts, key = { it.id }) { post -> PostItem(post) }
+        items(state.posts, key = { it.id }) { post -> PostItem(post) }
+        item(key = "footer", contentType = "footer") {
+            when {
+                state.paging.isLoadingMore -> ListFooterLoading()
+                state.paging.loadMoreError != null ->
+                    ListFooterError(state.paging.loadMoreError.asString()) { onIntent(PostListIntent.RetryLoadMore) }
+                state.paging.endReached -> ListFooterEnd()
+            }
+        }
     }
 }
+
+private const val PREFETCH_DISTANCE = 5
 
 @Composable
 private fun PostItem(post: Post) {

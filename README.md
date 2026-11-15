@@ -1,17 +1,19 @@
-# Machine Coding Starter (Android): `02-posts-list`
+# Machine Coding Starter (Android): `feature/pagination-manual`
 
-The base every feature branch starts from: one simple, complete feature with clean architecture and MVI.
+Starts from `02-posts-list` and adds hand-written load-more pagination. This is what most interviewers want to see, rather than Paging 3.
 
-**Added on top of `01-minimal`:**
-- `core/model/Post`, `core/network/api` (`PostApi`, `PostDto`), `core/database` (`AppDatabase`, `DatabaseModule`)
-- `feature/posts`, in Clean Architecture layers:
-  - **data:** `PostEntity`, `PostDao` (atomic `replaceAll`), mappers, and an offline-first `PostRepositoryImpl` (the UI observes Room; the network writes into Room)
-  - **domain:** the `PostRepository` interface, `ObservePostsUseCase`, `RefreshPostsUseCase`
-  - **ui (MVI):** `PostListContract` (State / Intent / Effect), `PostListViewModel`, a stateful `PostListRoute` plus a stateless `PostListScreen` with a preview
-- **States:** full-screen loading, full-screen error with retry, empty, data, and pull-to-refresh. When offline with cached data, the cache stays on screen and a snackbar explains why.
-- **Tests:** `FakePostRepository` and 5 ViewModel tests
+**What this feature shows:**
+- **`core/paging/Paginator`:** a reusable state machine with its own tests. It allows one request at a time, never requests past the end, never retries automatically after an error, and `reset()` cancels a load that's still running.
+- **Ownership:** the ViewModel loads page 1 (first load, pull-to-refresh) and then tells the `Paginator` where to continue. A refresh cancels any load-more in flight.
+- **Scroll trigger:** `snapshotFlow` over `LazyListState` sends `LoadNextPage` when the user is within 5 items of the end. Because it re-emits when the item count changes, a short page keeps loading until the screen is full.
+- **Footer states:** a spinner while loading, an error with Retry, and "You've reached the end".
+- **End detection:** a page with fewer items than `pageSize`. Use `total`, `hasMore` or `nextCursor` instead if your API returns one.
+- **Offline:** if refresh fails with cached rows, paging continues after what's cached.
+- **Tests:** 5 `Paginator` tests and 5 new ViewModel pagination tests
 
-**Practise from here:** branch off and build a detail screen, pagination, search, Paging 3 or auth. Then compare with the matching `feature/*` branch.
+```bash
+git diff 02-posts-list..feature/pagination-manual
+```
 
 ## Branches
 

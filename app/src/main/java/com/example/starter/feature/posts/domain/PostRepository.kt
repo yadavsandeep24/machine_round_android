@@ -9,6 +9,9 @@ interface PostRepository {
     /** Local DB is the source of truth; observe it. */
     fun observePosts(): Flow<List<Post>>
 
-    /** Fetch from network and replace the cache. */
-    suspend fun refresh(): AppResult<Unit>
+    /**
+     * Fetch one page from the network and write it into the DB.
+     * Page 1 replaces the cache (refresh); later pages are appended.
+     */
+    suspend fun loadPage(page: Int, pageSize: Int): AppResult<PageResult>
 }
